@@ -1,12 +1,13 @@
-module github.com/mra-ruiz/orderProcessing
+module e-commerce-app
 
 go 1.18
 
 require (
 	github.com/aws/aws-lambda-go v1.31.1
-	github.com/aws/aws-sdk-go v1.44.0
+	github.com/aws/aws-sdk-go v1.44.4
 	github.com/aws/aws-xray-sdk-go v1.7.0
 	github.com/cloudevents/sdk-go/v2 v2.9.0
+	github.com/gofrs/uuid v4.2.0+incompatible
 )
 
 require (
@@ -31,3 +32,5 @@ require (
 	google.golang.org/grpc v1.35.0 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
+
+replace aws-step-functions-long-lived-transactions/models => ../models
