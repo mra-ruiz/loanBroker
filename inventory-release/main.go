@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"models" // local
+	"e-commerce-app/models" // local
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
