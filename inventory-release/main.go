@@ -1,5 +1,3 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: MIT-0
 package main
 
 import (
@@ -10,10 +8,8 @@ import (
 
 	"e-commerce-app/models" // local
 
-	cloudevents "github.com/cloudevents/sdk-go"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
-
-// var dynamoDB *dynamodb.DynamoDB
 
 // Hard coding Order
 var myItem1 = models.Item{ItemID: "itemID456", Qty: 1, Description: "Pencil", UnitPrice: 2.50}
@@ -139,12 +135,9 @@ func main() {
 
 	fmt.Println("Order: \n", myOrder)
 
-	// Set a target.
 	ctx := cloudevents.ContextWithTarget(context.Background(), "http://localhost:8080/")
 
-	// will delete this and have it work with knative serving instead ---> lambda.Start(HandleRequest)
 	result, err := handler(ctx, myOrder)
-
 	if err != nil {
 		log.Fatalf("some error, %v", err)
 	}

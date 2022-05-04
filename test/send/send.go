@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"e-commerce-app/models"
 	"fmt"
 	"log"
 
@@ -31,7 +32,7 @@ func createEvent()(event cloudevents.Event) {
 	e :=  cloudevents.NewEvent()
 	e.SetSource("example/uri")
 	e.SetType("example.type")
-	e.SetData(cloudevents.ApplicationJSON, map[string]string{"hello": "world"})
+	e.SetData(cloudevents.ApplicationJSON, models.Inventory{}) //inventory
 	return e
 }
 
