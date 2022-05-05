@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"e-commerce-app/models"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -28,11 +30,27 @@ func main() {
 	send(c, ctx, event)
 }
 
+func getOrders()(orders []models.Order) {
+	// Reading order from JSON file
+	fileBytes, err := ioutil.ReadFile("./orders.json")
+	if err != nil {
+		log.Fatalf("failed to read file, %v", err)
+	}
+
+	// Unmarshaling json order slice to the newOrder object
+	err = json.Unmarshal(fileBytes, &orders)
+	if err != nil {
+		log.Fatalf("failed to unmarshal fileBytes into orders, %v", err)
+	}
+	
+	return orders
+}
+
 func createEvent()(event cloudevents.Event) {
 	e :=  cloudevents.NewEvent()
 	e.SetSource("example/uri")
 	e.SetType("example.type")
-	e.SetData(cloudevents.ApplicationJSON, models.Inventory{}) //inventory
+	e.SetData(cloudevents.ApplicationJSON, getOrders())
 	return e
 }
 

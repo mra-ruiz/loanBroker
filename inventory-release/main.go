@@ -2,40 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"e-commerce-app/models" // local
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
-
-// Hard coding Order
-var myItem1 = models.Item{ItemID: "itemID456", Qty: 1, Description: "Pencil", UnitPrice: 2.50}
-var myItem2 = models.Item{ItemID: "itemID789", Qty: 1, Description: "Paper", UnitPrice: 4.00}
-
-
-var myOrder = models.Order{
-	OrderID: "orderID123456", 
-	OrderDate: time.Date(2022, time.January, 1, 2, 30, 50, 12, time.Now().Location()), 
-	CustomerID: "id001", 
-	OrderStatus: "processing", 
-	Items: []models.Item{ myItem1, myItem2 }, 
-	Payment: models.Payment{
-		MerchantID: "merchantID1234", 
-		PaymentAmount: 6.50, 
-		TransactionID: "transactionID7845764", 
-		TransactionDate: "01-1-2022", 
-		OrderID: "orderID123456", 
-		PaymentType: "creditcard"}, 
-	Inventory: models.Inventory{
-		TransactionID: "transactionID7845764", 
-		TransactionDate: "01-1-2022", 
-		OrderID: "orderID123456", 
-		OrderItems: []string{"Pencil", "Paper"}, 
-		TransactionType: "online"},
-}
 
 func handler(ctx context.Context, ord models.Order) (models.Order, error) {
 	fmt.Println()
@@ -106,9 +80,9 @@ func getTransaction(ctx context.Context, orderID string) (models.Inventory, erro
 	// }
 	
 	// fake query for now :)
-	if myOrder.Inventory.OrderID == orderID {
-		inventory = myOrder.Inventory
-	}
+	// if myOrder.Inventory.OrderID == orderID {
+	// 	inventory = myOrder.Inventory
+	// }
 	
 	return inventory, nil
 }
@@ -131,16 +105,32 @@ func saveTransaction(ctx context.Context, inventory models.Inventory) error {
 	return nil
 }
 
-func main() {
+func receive( ctx context.Context, e cloudevents.Event ) {	
+	var newOrders []models.Order
 
-	fmt.Println("Order: \n", myOrder)
-
-	ctx := cloudevents.ContextWithTarget(context.Background(), "http://localhost:8080/")
-
-	result, err := handler(ctx, myOrder)
+	err := json.Unmarshal(e.Data(), &newOrders)
 	if err != nil {
-		log.Fatalf("some error, %v", err)
+		log.Fatalf("Couldn't unmarshal e.Data() into newOrders, %v", err)
 	}
 
-	fmt.Println("\n", result)
+	for i := range newOrders {
+		handler(ctx, newOrders[i])
+	}
+}
+
+func main() {
+
+	// fmt.Println("Order: \n", myOrder)
+	fmt.Println("In the main function of main.go")
+
+	c, err := cloudevents.NewClientHTTP()
+	if err != nil {
+		log.Fatalf("failed to create client, %v", err)
+	}
+
+	log.Fatal(c.StartReceiver(context.Background(), receive));
+
+	// Calling receive() function directly for debugging
+	// ctx := cloudevents.ContextWithTarget(context.Background(), "http://localhost:8080/")
+	// receive(ctx, cloudevents.NewEvent())
 }
