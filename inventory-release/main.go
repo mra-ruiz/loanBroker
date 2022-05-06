@@ -36,7 +36,7 @@ func receive( ctx context.Context, e cloudevents.Event ) {
 	}
 }
 
-func handler(ctx context.Context, orders []models.Order, ord models.Order) (models.Order, error) {
+func handler(ctx context.Context, orders []models.Order, ord models.Order) error {
 	fmt.Println()
 	log.Printf("[%s] - processing inventory release", ord.OrderID)
 	
@@ -44,7 +44,7 @@ func handler(ctx context.Context, orders []models.Order, ord models.Order) (mode
 	inventory, err := getTransaction(ctx, orders, ord.OrderID)
 	if err != nil {
 		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return models.Order{}, models.NewErrReleaseInventory(err.Error())
+		return models.NewErrReleaseInventory(err.Error())
 	}
 
 	fmt.Println("\nInventory after getTransaction(): \n", inventory)
@@ -58,20 +58,20 @@ func handler(ctx context.Context, orders []models.Order, ord models.Order) (mode
 	err = saveTransaction(ctx, orders, inventory)
 	if err != nil {
 		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return ord, models.NewErrReleaseInventory(err.Error())
+		return models.NewErrReleaseInventory(err.Error())
 	}
 
 	ord.Inventory = inventory
 
 	// testing scenario
 	if ord.OrderID[0:2] == "33" {
-		return ord, models.NewErrReleaseInventory("Unable to release inventory for order " + ord.OrderID)
+		return models.NewErrReleaseInventory("Unable to release inventory for order " + ord.OrderID)
 	}
 
 	fmt.Println()
 	log.Printf("[%s] - reservation processed", ord.OrderID)
 
-	return ord, nil
+	return nil
 }
 
 func getTransaction(ctx context.Context, orders []models.Order, orderID string) (models.Inventory, error) {
