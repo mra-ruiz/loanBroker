@@ -42,7 +42,7 @@ func getOrders()(orders []models.Order) {
 	if err != nil {
 		log.Fatalf("failed to unmarshal fileBytes into orders, %v", err)
 	}
-	
+
 	return orders
 }
 
@@ -50,7 +50,9 @@ func createEvent()(event cloudevents.Event) {
 	e :=  cloudevents.NewEvent()
 	e.SetSource("example/uri")
 	e.SetType("example.type")
-	e.SetData(cloudevents.ApplicationJSON, getOrders())
+
+	var orders = getOrders()
+	e.SetData(cloudevents.ApplicationJSON, &orders)
 	return e
 }
 
