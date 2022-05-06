@@ -21,13 +21,20 @@ func main() {
 	}
 
 	// Create an Event.
-	event := createEvent()
+	event :=  cloudevents.NewEvent()
+	event.SetSource("example/uri")
+	event.SetType("example.type")
+
+	var orders = getOrders()
+	event.SetData(cloudevents.ApplicationJSON, &orders)
 	
 	// Set a target.
 	ctx := cloudevents.ContextWithTarget(context.Background(), "http://localhost:8080/")
 
 	// Send that Event.
-	send(c, ctx, event)
+	if result := c.Send(ctx, event); cloudevents.IsUndelivered(result) {
+		log.Fatalf("failed to send, %v", result)
+	}
 }
 
 func getOrders()(orders []models.Order) {
@@ -44,20 +51,4 @@ func getOrders()(orders []models.Order) {
 	}
 
 	return orders
-}
-
-func createEvent()(event cloudevents.Event) {
-	e :=  cloudevents.NewEvent()
-	e.SetSource("example/uri")
-	e.SetType("example.type")
-
-	var orders = getOrders()
-	e.SetData(cloudevents.ApplicationJSON, &orders)
-	return e
-}
-
-func send(c cloudevents.Client, ctx context.Context, event cloudevents.Event) {
-	if result := c.Send(ctx, event); cloudevents.IsUndelivered(result) {
-		log.Fatalf("failed to send, %v", result)
-	}
 }
