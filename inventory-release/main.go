@@ -63,11 +63,6 @@ func handler(ctx context.Context, orders []models.Order, ord models.Order) error
 
 	ord.Inventory = inventory
 
-	// testing scenario
-	if ord.OrderID[0:2] == "33" {
-		return models.NewErrReleaseInventory("Unable to release inventory for order " + ord.OrderID)
-	}
-
 	fmt.Println()
 	log.Printf("[%s] - reservation processed", ord.OrderID)
 
@@ -84,71 +79,29 @@ func getTransaction(ctx context.Context, orders []models.Order, orderID string) 
 			break
 		}
 	}
-
-	// // defining a query input type
-	// input := &dynamodb.QueryInput{
-	// 	ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-	// 		":v1": {
-	// 			S: aws.String(orderID),
-	// 		},
-	// 		":v2": {
-	// 			S: aws.String("Reserve"),
-	// 		},
-	// 	},
-	// 	KeyConditionExpression: aws.String("order_id = :v1 AND transaction_type = :v2"),
-	// 	TableName:              aws.String(os.Getenv("TABLE_NAME")),
-	// 	IndexName:              aws.String("orderIDIndex"),
-	// }
-
-	// // Get payment transaction from database
-	// result, err := dynamoDB.QueryWithContext(ctx, input)
-	// if err != nil {
-	// 	return inventory, err
-	// }
-
-	// err = dynamodbattribute.UnmarshalMap(result.Items[0], &inventory)
-	// if err != nil {
-	// 	return inventory, fmt.Errorf("failed to DynamoDB unmarshal Record, %v", err.(awserr.Error))
-	// }
 	
 	return inventory, nil
 }
 
 func saveTransaction(ctx context.Context, orders []models.Order, inventory models.Inventory) error {
-	for i,curOrder := range orders {
-		if curOrder.OrderID == inventory.OrderID {
-			curOrder.Inventory = inventory
-
-			orders[i] = curOrder
+	// Updating inventory of specific orderw
+	for i:= 0; i < len(orders); i++ {
+		if orders[i].OrderID == inventory.OrderID {
+			orders[i].Inventory = inventory
 			break
 		}
 	}
-
 	// MarshalIndent is just for debugging. Change back to Marshal()
 	ordersBytes, err  := json.Marshal(orders)
-	// ordersBytes, err  := json.MarshalIndent(orders, "", "    ")
   	if err != nil {
 		log.Fatalf("Couldn't marshal orders, %v", err)
 	}
 
+	// Modify the JSON file that acts as the database
 	err = ioutil.WriteFile("./orders.json", ordersBytes, 0644)
   	if err != nil {
 		log.Fatalf("Couldn't write to json file, %v", err)
 	}
-
-	// marshalledInventory, err := dynamodbattribute.MarshalMap(inventory)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to DynamoDB marshal Inventory, %v", err)
-	// }
-
-	// _, err = dynamoDB.PutItemWithContext(ctx, &dynamodb.PutItemInput{
-	// 	TableName: aws.String(os.Getenv("TABLE_NAME")),
-	// 	Item:      marshalledInventory,
-	// })
-
-	// if err != nil {
-	// 	return fmt.Errorf("failed to put record to DynamoDB, %v", err)
-	// }
 
 	return nil
 }
