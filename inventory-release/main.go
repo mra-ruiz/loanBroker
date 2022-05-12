@@ -84,7 +84,7 @@ func getTransaction(ctx context.Context, orders []models.Order, orderID string) 
 }
 
 func saveTransaction(ctx context.Context, orders []models.Order, inventory models.Inventory) error {
-	// Updating inventory of specific orderw
+	// Updating inventory of specific order
 	for i:= 0; i < len(orders); i++ {
 		if orders[i].OrderID == inventory.OrderID {
 			orders[i].Inventory = inventory
