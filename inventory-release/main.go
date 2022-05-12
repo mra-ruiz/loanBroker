@@ -91,7 +91,7 @@ func saveTransaction(ctx context.Context, orders []models.Order, inventory model
 			break
 		}
 	}
-	// MarshalIndent is just for debugging. Change back to Marshal()
+	
 	ordersBytes, err  := json.Marshal(orders)
   	if err != nil {
 		log.Fatalf("Couldn't marshal orders, %v", err)
