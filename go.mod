@@ -3,8 +3,9 @@ module e-commerce-app
 go 1.18
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.9.0
+	github.com/cloudevents/sdk-go/v2 v2.10.0
 	github.com/gofrs/uuid v4.2.0+incompatible
+	github.com/lib/pq v1.10.6
 	github.com/stretchr/testify v1.7.0
 )
 

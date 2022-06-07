@@ -1,21 +1,11 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: MIT-0
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"time"
 )
-
-// Order represents a customer order
-type Order struct {
-	OrderID     string    `json:"order_id,omitempty"`
-	OrderDate   time.Time `json:"order_date,omitempty"`
-	CustomerID  string    `json:"customer_id,omitempty"`
-	OrderStatus string    `json:"order_status,omitempty"`
-	Items       []Item    `json:"items,omitempty"`
-	Payment     Payment   `json:"payment,omitempty"`
-	Inventory   Inventory `json:"inventory,omitempty"`
-}
 
 // Item represents an item in the cart
 type Item struct {
@@ -23,6 +13,33 @@ type Item struct {
 	Qty         float64 `json:"qty,omitempty"`
 	Description string  `json:"description,omitempty"`
 	UnitPrice   float64 `json:"unit_price,omitempty"`
+}
+
+// Order represents a customer order
+type StoredOrder struct {
+	OrderID string `json:"order_id,omitempty"`
+	Order Order `json:"order_info,omitempty"`
+}
+
+type Order struct {
+	OrderDate   time.Time      `json:"order_date,omitempty"`
+	CustomerID  string    `json:"customer_id,omitempty"`
+	OrderStatus string    `json:"order_status,omitempty"`
+	Items       []Item    `json:"items,omitempty"`
+	Payment     Payment   `json:"payment,omitempty"`
+	Inventory   Inventory `json:"inventory,omitempty"`
+}
+
+func (o Order) Value() (driver.Value, error) {
+	return json.Marshal(o)
+}
+
+func (o *Order) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, &o)
 }
 
 // Total returns the total ammount of the order

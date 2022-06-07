@@ -2,86 +2,105 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"e-commerce-app/models" //local
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	_ "github.com/lib/pq"
 )
 
 func main() {
 	fmt.Println("Starting inventory reserve ...")
-
 	c, err := cloudevents.NewClientHTTP()
-	if err != nil {
-		log.Fatalf("failed to create client, %v", err)
-	}
-
+	checkForErrors(err, "Failed to create client")
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
-func receive( ctx context.Context, e cloudevents.Event ) {	
-	var orders []models.Order
+func receive(ctx context.Context, e cloudevents.Event) {
+	db, err := connectDatabase()
 
-	err := json.Unmarshal(e.Data(), &orders)
-	if err != nil {
-		log.Fatalf("Couldn't unmarshal e.Data() into orders, %v", err)
-	}
+	var allStoredOrders []models.StoredOrder
 
-	for i := range orders {
-		handler(ctx, orders, orders[i])
+	err = json.Unmarshal(e.Data(), &allStoredOrders)
+	checkForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	
+	for i := range allStoredOrders {
+		handler(ctx, allStoredOrders, allStoredOrders[i], db)
 	}
 }
 
-func handler(ctx context.Context, orders []models.Order, ord models.Order) (models.Order, error) {
+func connectDatabase() (*sql.DB, error) {
+	// connection string
+	host := "localhost"
+    port := 5432
+    user := "mruizcardenas"
+    password := "K67u5ye"
+    dbname := "postgres"
 
-	log.Printf("[%s] - processing inventory reservation", ord.OrderID)
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	
+	// open database
+	db, err := sql.Open("postgres", psqlconn)
+	checkForErrors(err, "Could not open database")
+
+	// check db
+    err = db.Ping()
+	checkForErrors(err, "Could not ping database")
+	fmt.Println("Connected to databse!")
+	return db, err
+}
+
+func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
+	log.Printf("[%s] - processing inventory reservation", storedOrder.OrderID)
 
 	var newInvTrans = models.Inventory{
-		OrderID:    ord.OrderID,
-		OrderItems: ord.ItemIds(),
+		OrderID:    storedOrder.OrderID,
+		OrderItems: storedOrder.Order.ItemIds(),
 	}
 
 	// reserve the items in the inventory
 	newInvTrans.Reserve()
 
 	// Annotate saga with inventory transaction id
-	ord.Inventory = newInvTrans
+	storedOrder.Order.Inventory = newInvTrans
 
 	// Save the reservation
-	err := saveInventory(ctx, orders, newInvTrans)
+	err := saveInventory(ctx, allStoredOrders, newInvTrans, db)
 	if err != nil {
-		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return models.Order{}, models.NewErrReserveInventory(err.Error())
+		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
+		return models.StoredOrder{}, models.NewErrReserveInventory(err.Error())
 	}
 
-	log.Printf("[%s] - reservation processed", ord.OrderID)
+	log.Printf("[%s] - reservation processed", storedOrder.OrderID)
 
-	return ord, nil
+	return storedOrder, nil
 }
 
-func saveInventory(ctx context.Context, orders []models.Order, inventory models.Inventory) error {
+func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, inventory models.Inventory, db *sql.DB) error {
+	fmt.Println("in saveInventory() function")
+
+	// converting Inventory into a byte slice
+	inventoryBytes, err := json.Marshal(inventory)
+
 	// Updating inventory of specific order
-	for i:= 0; i < len(orders); i++ {
-		if orders[i].OrderID == inventory.OrderID {
-			orders[i].Inventory = inventory
-			break
-		}
-	}
+	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
+	_, err = db.Exec(updateString, inventoryBytes, inventory.OrderID)
+	checkForErrors(err, "Could not update inventory")
 
-	ordersBytes, err  := json.Marshal(orders)
-  	if err != nil {
-		log.Fatalf("Couldn't marshal orders, %v", err)
-	}
-
-	// Modify the JSON file that acts as the database
-	err = ioutil.WriteFile("./orders.json", ordersBytes, 0644)
-  	if err != nil {
-		log.Fatalf("Couldn't write to json file, %v", err)
-	}
-
+	// close database
+    defer db.Close()
 	return nil
 }
+
+func checkForErrors(err error, s string) {
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		log.Fatalf(s)
+	}
+}
+
+
