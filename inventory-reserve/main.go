@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"log"
 
-	"e-commerce-app/models" //local
+	"e-commerce-app/models"
+	"e-commerce-app/test/send"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	_ "github.com/lib/pq"
@@ -16,42 +17,21 @@ import (
 func main() {
 	fmt.Println("Starting inventory reserve ...")
 	c, err := cloudevents.NewClientHTTP()
-	checkForErrors(err, "Failed to create client")
+	send.CheckForErrors(err, "Failed to create client")
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
 func receive(ctx context.Context, e cloudevents.Event) {
-	db, err := connectDatabase()
+	db, err := send.ConnectDatabase()
 
 	var allStoredOrders []models.StoredOrder
 
 	err = json.Unmarshal(e.Data(), &allStoredOrders)
-	checkForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	send.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
 	
 	for i := range allStoredOrders {
 		handler(ctx, allStoredOrders, allStoredOrders[i], db)
 	}
-}
-
-func connectDatabase() (*sql.DB, error) {
-	// connection string
-	host := "localhost"
-    port := 5432
-    user := "mruizcardenas"
-    password := "K67u5ye"
-    dbname := "postgres"
-
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	
-	// open database
-	db, err := sql.Open("postgres", psqlconn)
-	checkForErrors(err, "Could not open database")
-
-	// check db
-    err = db.Ping()
-	checkForErrors(err, "Could not ping database")
-	fmt.Println("Connected to databse!")
-	return db, err
 }
 
 func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
@@ -89,18 +69,29 @@ func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, in
 	// Updating inventory of specific order
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, inventoryBytes, inventory.OrderID)
-	checkForErrors(err, "Could not update inventory")
+	send.CheckForErrors(err, "Could not update inventory")
+
+	// Only for restoring database for testing reasons
+	// resetDatabase(db)
 
 	// close database
     defer db.Close()
 	return nil
 }
 
-func checkForErrors(err error, s string) {
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		log.Fatalf(s)
-	}
+func resetDatabase(db *sql.DB) {
+	// Resetting after inventory-reserve
+	originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
+		"transaction_id": "transactionID7845764", 
+		"transaction_date": "01-1-2022", 
+		"order_id": "orderID123456", 
+		"items": [
+			"Pencil", 
+			"Paper"
+		], 
+		"transaction_type": "online"
+	}', true) WHERE order_id = 'orderID123456';`
+
+	_, err := db.Exec(originalInventory)
+	send.CheckForErrors(err, "Could not reset database")
 }
-
-

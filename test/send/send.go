@@ -1,4 +1,4 @@
-package main
+package send
 
 import (
 	"context"
@@ -15,13 +15,13 @@ import (
 func main() {
 	fmt.Println("Hi! I am going to send a CloudEvent :)")
 
-	db, err := connectDatabase()
+	db, err := ConnectDatabase()
 
 	var allStoredOrders = importDbData(db)
 
 	// Create client
 	c, err := cloudevents.NewClientHTTP()
-	checkForErrors(err, "Failed to create client")
+	CheckForErrors(err, "Failed to create client")
 
 	// Create an Event.
 	event :=  cloudevents.NewEvent()
@@ -38,7 +38,7 @@ func main() {
 	}
 }
 
-func connectDatabase() (*sql.DB, error) {
+func ConnectDatabase() (*sql.DB, error) {
 	// connection string
 	host := "localhost"
     port := 5432
@@ -50,11 +50,11 @@ func connectDatabase() (*sql.DB, error) {
 	
 	// open database
 	db, err := sql.Open("postgres", psqlconn)
-	checkForErrors(err, "Could not open database")
+	CheckForErrors(err, "Could not open database")
 
 	// check db
     err = db.Ping()
-	checkForErrors(err, "Could not ping database")
+	CheckForErrors(err, "Could not ping database")
 	fmt.Println("Connected to databse!")
 	return db, err
 }
@@ -64,11 +64,11 @@ func importDbData(db *sql.DB) []models.StoredOrder {
 	var storedOrder models.StoredOrder
 	rows, err := db.Query(`SELECT * FROM stored_orders`)
 
-	checkForErrors(err, "send: Could not query select * from stored_orders")
+	CheckForErrors(err, "send: Could not query select * from stored_orders")
 
 	for rows.Next() {
 		if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
-			checkForErrors(err, "Error with scan")
+			CheckForErrors(err, "Error with scan")
 		} else {
 			fmt.Println("Here's where scan has no error")
 		}
@@ -77,32 +77,12 @@ func importDbData(db *sql.DB) []models.StoredOrder {
 		fmt.Println(allStoredOrders)
 	}
 
-	// Only for restoring database for testing reasons
-	// resetDatabase(db)
-
 	// Close database
 	defer rows.Close()
 	return allStoredOrders
 }
 
-func resetDatabase(db *sql.DB) {
-	// Resetting after inventory-reserve
-	originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-		"transaction_id": "transactionID7845764", 
-		"transaction_date": "01-1-2022", 
-		"order_id": "orderID123456", 
-		"items": [
-			"Pencil", 
-			"Paper"
-		], 
-		"transaction_type": "online"
-	}', true) WHERE order_id = 'orderID123456';`
-
-	_, err := db.Exec(originalInventory)
-	checkForErrors(err, "Could not reset database")
-}
-
-func checkForErrors(err error, s string) {
+func CheckForErrors(err error, s string) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		log.Fatalf(s)
