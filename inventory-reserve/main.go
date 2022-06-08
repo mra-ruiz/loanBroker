@@ -61,7 +61,7 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 	utils.ViewDatabase(db)
 
 	// Only for restoring database for testing reasons
-	// utils.ResetDatabase(db)
+	// utils.ResetDatabase(db, "inventory-reserve")
 	// fmt.Println("Stored orders after reset:")
 	// utils.ViewDatabase(db)
 
@@ -73,6 +73,7 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, inventory models.Inventory, db *sql.DB) error {
 	// converting Inventory into a byte slice
 	inventoryBytes, err := json.Marshal(inventory)
+	utils.CheckForErrors(err, "Could not marshall inventory")
 
 	// Updating inventory of specific order
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`

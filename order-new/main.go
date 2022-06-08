@@ -4,77 +4,80 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"e-commerce-app/models"
+	"e-commerce-app/utils"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 func main() {
 	fmt.Println("Received a new order ...")
-
 	c, err := cloudevents.NewClientHTTP()
-	if err != nil {
-		log.Fatalf("failed to create client, %v", err)
-	}
-
+	utils.CheckForErrors(err, "Failed to create client")
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
 func receive( ctx context.Context, e cloudevents.Event ) {	
-	var orders []models.Order
+	db, err := utils.ConnectDatabase()
 
-	err := json.Unmarshal(e.Data(), &orders)
-	if err != nil {
-		log.Fatalf("Couldn't unmarshal e.Data() into orders, %v", err)
-	}
+	var allStoredOrders []models.StoredOrder
 
-	for i := range orders {
-		handler(ctx, orders, orders[i])
+	err = json.Unmarshal(e.Data(), &allStoredOrders)
+	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	
+	for i := range allStoredOrders {
+		handler(ctx, allStoredOrders, allStoredOrders[i], db)
 	}
 }
 
-// handler for the Lambda function
-func handler(ctx context.Context, orders []models.Order, ord models.Order) (models.Order, error) {
+func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 
-	log.Printf("[%s] - received new order", ord.OrderID)
+	log.Printf("[%s] - received new order", storedOrder.OrderID)
 
 	// persist the order data. Set order status to new
-	ord.OrderStatus = "New"
+	storedOrder.Order.OrderStatus = "New"
 
-	err := saveOrder(ctx, orders, ord)
+	err := saveOrder(ctx, allStoredOrders, storedOrder, db)
 	if err != nil {
-		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return models.Order{}, models.NewErrProcessOrder(err.Error())
+		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
+		return models.StoredOrder{}, models.NewErrProcessOrder(err.Error())
 	}
 
 	// testing scenario
-	if ord.OrderID[0:1] == "1" {
-		return models.Order{}, models.NewErrProcessOrder("Unable to process order " + ord.OrderID)
-	}
+	// if storedOrder.OrderID[0:1] == "1" {
+	// 	return models.StoredOrder{}, models.NewErrProcessOrder("Unable to process order " + storedOrder.OrderID)
+	// }
 
-	log.Printf("[%s] - order status set to new", ord.OrderID)
+	log.Printf("[%s] - order status set to new", storedOrder.OrderID)
 
-	return ord, nil
+	fmt.Println("Updated stored orders:")
+	utils.ViewDatabase(db)
+
+	// Only for restoring database for testing reasons
+	utils.ResetDatabase(db, "order-new")
+	fmt.Println("Stored orders after reset:")
+	utils.ViewDatabase(db)
+
+	// close database
+	defer db.Close()
+	return storedOrder, nil
 }
 
-func saveOrder(ctx context.Context, orders []models.Order, order models.Order) error {
+func saveOrder(ctx context.Context, allStoredOrders []models.StoredOrder, updatedOrder models.StoredOrder, db *sql.DB) error {
 	
-	// Adding order to a json file
-	ordersBytes, err  := json.MarshalIndent(append(orders, order), "", "    ")
-  	if err != nil {
-		log.Fatalf("Couldn't marshal orders, %v", err)
-	}
+	// Updating status of order in the database
+	newStatus := updatedOrder.Order.OrderStatus
+	orderStatusBytes, err := json.Marshal(newStatus)
+	utils.CheckForErrors(err, "Could not marshall order status")
 
-	// Modify the JSON file that acts as the database
-	err = ioutil.WriteFile("./orders.json", ordersBytes, 0644)
-  	if err != nil {
-		log.Fatalf("Couldn't write to json file, %v", err)
-	}
-	
+	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
+	_, err = db.Exec(updateString, orderStatusBytes, updatedOrder.OrderID)
+	utils.CheckForErrors(err, "Could not update order status to new")
+
 	return nil
 }
