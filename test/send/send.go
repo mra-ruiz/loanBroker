@@ -1,9 +1,10 @@
-package send
+package main
 
 import (
 	"context"
 	"database/sql"
 	"e-commerce-app/models"
+	"e-commerce-app/utils"
 	"fmt"
 	"log"
 
@@ -15,13 +16,13 @@ import (
 func main() {
 	fmt.Println("Hi! I am going to send a CloudEvent :)")
 
-	db, err := ConnectDatabase()
+	db, err := utils.ConnectDatabase()
 
 	var allStoredOrders = importDbData(db)
 
 	// Create client
 	c, err := cloudevents.NewClientHTTP()
-	CheckForErrors(err, "Failed to create client")
+	utils.CheckForErrors(err, "Failed to create client")
 
 	// Create an Event.
 	event :=  cloudevents.NewEvent()
@@ -38,53 +39,25 @@ func main() {
 	}
 }
 
-func ConnectDatabase() (*sql.DB, error) {
-	// connection string
-	host := "localhost"
-    port := 5432
-    user := "mruizcardenas"
-    password := "K67u5ye"
-    dbname := "postgres"
-
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	
-	// open database
-	db, err := sql.Open("postgres", psqlconn)
-	CheckForErrors(err, "Could not open database")
-
-	// check db
-    err = db.Ping()
-	CheckForErrors(err, "Could not ping database")
-	fmt.Println("Connected to databse!")
-	return db, err
-}
-
 func importDbData(db *sql.DB) []models.StoredOrder {
 	var allStoredOrders []models.StoredOrder
 	var storedOrder models.StoredOrder
 	rows, err := db.Query(`SELECT * FROM stored_orders`)
 
-	CheckForErrors(err, "send: Could not query select * from stored_orders")
+	utils.CheckForErrors(err, "send: Could not query select * from stored_orders")
 
 	for rows.Next() {
 		if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
-			CheckForErrors(err, "Error with scan")
+			utils.CheckForErrors(err, "Error with scan")
 		} else {
-			fmt.Println("Here's where scan has no error")
+			// fmt.Println("Here's where scan has no error")
 		}
 		allStoredOrders = append(allStoredOrders, storedOrder)
-		fmt.Println(storedOrder)
+		fmt.Println("Original stored orders:")
 		fmt.Println(allStoredOrders)
 	}
 
 	// Close database
 	defer rows.Close()
 	return allStoredOrders
-}
-
-func CheckForErrors(err error, s string) {
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		log.Fatalf(s)
-	}
 }

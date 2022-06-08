@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"e-commerce-app/models"
-	"e-commerce-app/test/send"
+	"e-commerce-app/utils"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	_ "github.com/lib/pq"
@@ -17,17 +17,17 @@ import (
 func main() {
 	fmt.Println("Starting inventory reserve ...")
 	c, err := cloudevents.NewClientHTTP()
-	send.CheckForErrors(err, "Failed to create client")
+	utils.CheckForErrors(err, "Failed to create client")
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
 func receive(ctx context.Context, e cloudevents.Event) {
-	db, err := send.ConnectDatabase()
+	db, err := utils.ConnectDatabase()
 
 	var allStoredOrders []models.StoredOrder
 
 	err = json.Unmarshal(e.Data(), &allStoredOrders)
-	send.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
 	
 	for i := range allStoredOrders {
 		handler(ctx, allStoredOrders, allStoredOrders[i], db)
@@ -57,6 +57,16 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 
 	log.Printf("[%s] - reservation processed", storedOrder.OrderID)
 
+	fmt.Println("Updated stored orders:")
+	utils.ViewDatabase(db)
+
+	// Only for restoring database for testing reasons
+	// utils.ResetDatabase(db)
+	// fmt.Println("Stored orders after reset:")
+	// utils.ViewDatabase(db)
+
+	// close database
+	defer db.Close()
 	return storedOrder, nil
 }
 
@@ -69,29 +79,7 @@ func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, in
 	// Updating inventory of specific order
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, inventoryBytes, inventory.OrderID)
-	send.CheckForErrors(err, "Could not update inventory")
+	utils.CheckForErrors(err, "Could not update inventory")
 
-	// Only for restoring database for testing reasons
-	// resetDatabase(db)
-
-	// close database
-    defer db.Close()
 	return nil
-}
-
-func resetDatabase(db *sql.DB) {
-	// Resetting after inventory-reserve
-	originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-		"transaction_id": "transactionID7845764", 
-		"transaction_date": "01-1-2022", 
-		"order_id": "orderID123456", 
-		"items": [
-			"Pencil", 
-			"Paper"
-		], 
-		"transaction_type": "online"
-	}', true) WHERE order_id = 'orderID123456';`
-
-	_, err := db.Exec(originalInventory)
-	send.CheckForErrors(err, "Could not reset database")
 }
