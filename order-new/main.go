@@ -1,5 +1,3 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: MIT-0
 package main
 
 import (
@@ -48,20 +46,15 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 		return models.StoredOrder{}, models.NewErrProcessOrder(err.Error())
 	}
 
-	// testing scenario
-	// if storedOrder.OrderID[0:1] == "1" {
-	// 	return models.StoredOrder{}, models.NewErrProcessOrder("Unable to process order " + storedOrder.OrderID)
-	// }
-
 	log.Printf("[%s] - order status set to new", storedOrder.OrderID)
 
-	fmt.Println("Updated stored orders:")
+	fmt.Println("\nUpdated stored orders:")
 	utils.ViewDatabase(db)
 
 	// Only for restoring database for testing reasons
-	utils.ResetDatabase(db, "order-new")
-	fmt.Println("Stored orders after reset:")
-	utils.ViewDatabase(db)
+	// utils.ResetDatabase(db, "order-new")
+	// fmt.Println("\nStored orders after reset:")
+	// utils.ViewDatabase(db)
 
 	// close database
 	defer db.Close()
@@ -70,11 +63,12 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 
 func saveOrder(ctx context.Context, allStoredOrders []models.StoredOrder, updatedOrder models.StoredOrder, db *sql.DB) error {
 	
-	// Updating status of order in the database
+	// Converting the new order status into a byte slice
 	newStatus := updatedOrder.Order.OrderStatus
 	orderStatusBytes, err := json.Marshal(newStatus)
 	utils.CheckForErrors(err, "Could not marshall order status")
 
+	// Updating the order status in the database
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, orderStatusBytes, updatedOrder.OrderID)
 	utils.CheckForErrors(err, "Could not update order status to new")
