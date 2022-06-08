@@ -71,8 +71,6 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 }
 
 func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, inventory models.Inventory, db *sql.DB) error {
-	fmt.Println("in saveInventory() function")
-
 	// converting Inventory into a byte slice
 	inventoryBytes, err := json.Marshal(inventory)
 
