@@ -30,11 +30,11 @@ func receive(ctx context.Context, e cloudevents.Event) {
 	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
 	
 	for i := range allStoredOrders {
-		handler(ctx, allStoredOrders, allStoredOrders[i], db)
+		handler(ctx, allStoredOrders[i], db)
 	}
 }
 
-func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 	log.Printf("[%s] - processing inventory reservation", storedOrder.OrderID)
 
 	var newInvTrans = models.Inventory{
@@ -49,7 +49,7 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 	storedOrder.Order.Inventory = newInvTrans
 
 	// Save the reservation
-	err := saveInventory(ctx, allStoredOrders, newInvTrans, db)
+	err := saveInventory(ctx, newInvTrans, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return models.StoredOrder{}, models.NewErrReserveInventory(err.Error())
@@ -70,7 +70,7 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 	return storedOrder, nil
 }
 
-func saveInventory(ctx context.Context, allStoredOrders []models.StoredOrder, inventory models.Inventory, db *sql.DB) error {
+func saveInventory(ctx context.Context, inventory models.Inventory, db *sql.DB) error {
 	// converting Inventory into a byte slice
 	inventoryBytes, err := json.Marshal(inventory)
 	utils.CheckForErrors(err, "Could not marshall inventory")

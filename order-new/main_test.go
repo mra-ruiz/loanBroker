@@ -17,6 +17,11 @@ import (
 var scenarioErrProcessOrder = "../testdata/order1.json"
 var scenarioSuccessfulOrder = "../testdata/order7.json"
 
+// testing scenario
+// if storedOrder.OrderID[0:1] == "1" {
+// 	return models.StoredOrder{}, models.NewErrProcessOrder("Unable to process order " + storedOrder.OrderID)
+// }
+
 func TestHandler(t *testing.T) {
 	assert := assert.New(t)
 

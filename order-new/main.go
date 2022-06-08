@@ -29,18 +29,18 @@ func receive( ctx context.Context, e cloudevents.Event ) {
 	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
 	
 	for i := range allStoredOrders {
-		handler(ctx, allStoredOrders, allStoredOrders[i], db)
+		handler(ctx, allStoredOrders[i], db)
 	}
 }
 
-func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 
 	log.Printf("[%s] - received new order", storedOrder.OrderID)
 
 	// persist the order data. Set order status to new
 	storedOrder.Order.OrderStatus = "New"
 
-	err := saveOrder(ctx, allStoredOrders, storedOrder, db)
+	err := saveOrder(ctx, storedOrder, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return models.StoredOrder{}, models.NewErrProcessOrder(err.Error())
@@ -61,7 +61,7 @@ func handler(ctx context.Context, allStoredOrders []models.StoredOrder, storedOr
 	return storedOrder, nil
 }
 
-func saveOrder(ctx context.Context, allStoredOrders []models.StoredOrder, updatedOrder models.StoredOrder, db *sql.DB) error {
+func saveOrder(ctx context.Context, updatedOrder models.StoredOrder, db *sql.DB) error {
 	
 	// Converting the new order status into a byte slice
 	newStatus := updatedOrder.Order.OrderStatus
