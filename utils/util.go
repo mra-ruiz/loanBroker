@@ -62,7 +62,34 @@ func ResetDatabase(db *sql.DB, resetType string) {
 		originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = 'orderID123456';`
 		_, err := db.Exec(originalOrderStatus)
 		CheckForErrors(err, "Could not reset database")
+	} else if resetType == "payment" {
+		originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
+			"order_id": "orderID123456",
+			"merchant_id": "merchantID1234",
+			"payment_type": "creditcard",
+			"payment_amount": 6.5,
+			"transaction_id": "transactionID7845764",
+			"transaction_date": "01-1-2022"
+		}', true) WHERE order_id = 'orderID123456';`
+
+		_, err := db.Exec(originalPayment)
+		CheckForErrors(err, "Could not reset database")
 	} else if resetType == "inventory-reserve" { 
+		originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
+			"transaction_id": "transactionID7845764", 
+			"transaction_date": "01-1-2022", 
+			"order_id": "orderID123456", 
+			"items": [
+				"Pencil", 
+				"Paper"
+			], 
+			"transaction_type": "online"
+		}', true) WHERE order_id = 'orderID123456';`
+
+		_, err := db.Exec(originalInventory)
+		CheckForErrors(err, "Could not reset database")
+	} else if resetType == "inventory-release" {
+		// write reset code here
 		originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
 			"transaction_id": "transactionID7845764", 
 			"transaction_date": "01-1-2022", 

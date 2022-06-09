@@ -2,106 +2,102 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"e-commerce-app/models"
+	"e-commerce-app/utils"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 func main() {
 	fmt.Println("Starting inventory release ...")
-
 	c, err := cloudevents.NewClientHTTP()
-	if err != nil {
-		log.Fatalf("failed to create client, %v", err)
-	}
-
+	utils.CheckForErrors(err, "Failed to create client")
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
 func receive( ctx context.Context, e cloudevents.Event ) {	
-	var orders []models.Order
+	db, err := utils.ConnectDatabase()
 
-	err := json.Unmarshal(e.Data(), &orders)
-	if err != nil {
-		log.Fatalf("Couldn't unmarshal e.Data() into orders, %v", err)
-	}
+	var allStoredOrders []models.StoredOrder
 
-	for i := range orders {
-		handler(ctx, orders, orders[i])
+	err = json.Unmarshal(e.Data(), &allStoredOrders)
+	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	
+	for i := range allStoredOrders {
+		handler(ctx, allStoredOrders[i], db)
 	}
 }
 
-func handler(ctx context.Context, orders []models.Order, ord models.Order) (models.Order, error) {
-	fmt.Println()
-	log.Printf("[%s] - processing inventory release", ord.OrderID)
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
+	
+	log.Printf("[%s] - processing inventory release", storedOrder.OrderID)
 	
 	// Find inventory transaction
-	inventory, err := getTransaction(ctx, orders, ord.OrderID)
+	inventory, err := getTransaction(ctx, storedOrder.OrderID, db)
 	if err != nil {
-		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return ord, models.NewErrReleaseInventory(err.Error())
+		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
+		return storedOrder, models.NewErrReleaseInventory(err.Error())
 	}
-
-	fmt.Println("\nInventory after getTransaction(): \n", inventory)
 
 	// Releasing items from inventory to make it available
 	inventory.Release()
 
-	fmt.Println("\nInventory after Release(): \n", inventory)
-
 	// Saves transaction and updates inventory TransactionType to 'Release' 
-	err = saveTransaction(ctx, orders, inventory)
+	err = saveTransaction(ctx, inventory, db)
 	if err != nil {
-		log.Printf("[%s] - error! %s", ord.OrderID, err.Error())
-		return ord, models.NewErrReleaseInventory(err.Error())
+		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
+		return storedOrder, models.NewErrReleaseInventory(err.Error())
 	}
 
-	ord.Inventory = inventory
+	storedOrder.Order.Inventory = inventory
 
 	fmt.Println()
-	log.Printf("[%s] - reservation processed", ord.OrderID)
+	log.Printf("[%s] - reservation processed", storedOrder.OrderID)
 
-	return ord, nil
+	fmt.Println("\nUpdated stored orders:")
+	utils.ViewDatabase(db)
+
+	// Only for restoring database for testing reasons
+	// utils.ResetDatabase(db, "inventory-release")
+	// fmt.Println("\nStored orders after reset:")
+	// utils.ViewDatabase(db)
+
+	// close database
+	defer db.Close()
+	return storedOrder, nil
 }
 
-func getTransaction(ctx context.Context, orders []models.Order, orderID string) (models.Inventory, error) {
+func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Inventory, error) {
+	// Searching for inventory
+	resultingInventory, err := db.Query(`select order_info -> 'inventory' from stored_orders where order_id = $1;`, orderID)
+	utils.CheckForErrors(err, "Could not search for inventory")
 
-	inventory := models.Inventory{}
+	// Convert inventory of type JSONB to type models.Inventory
+	var inventory models.Inventory
+	var result []uint8
 
-	for _,curOrder := range orders {
-		if curOrder.OrderID == orderID {
-			inventory = curOrder.Inventory
-			break
-		}
+	for resultingInventory.Next() {
+		resultingInventory.Scan(&result)
+		json.Unmarshal(result, &inventory)		
 	}
 	
 	return inventory, nil
 }
 
-func saveTransaction(ctx context.Context, orders []models.Order, inventory models.Inventory) error {
-	// Updating inventory of specific order
-	for i:= 0; i < len(orders); i++ {
-		if orders[i].OrderID == inventory.OrderID {
-			orders[i].Inventory = inventory
-			break
-		}
-	}
-	
-	ordersBytes, err  := json.Marshal(orders)
-  	if err != nil {
-		log.Fatalf("Couldn't marshal orders, %v", err)
-	}
+func saveTransaction(ctx context.Context, inventory models.Inventory, db *sql.DB) error {
+	// converting Inventory into a byte slice
+	inventoryBytes, err := json.Marshal(inventory)
+	utils.CheckForErrors(err, "Could not marshall inventory")
 
-	// Modify the JSON file that acts as the database
-	err = ioutil.WriteFile("./orders.json", ordersBytes, 0644)
-  	if err != nil {
-		log.Fatalf("Couldn't write to json file, %v", err)
-	}
+	// Updating inventory of specific order
+	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
+	_, err = db.Exec(updateString, inventoryBytes, inventory.OrderID)
+	utils.CheckForErrors(err, "Could not update inventory")
 
 	return nil
 }
