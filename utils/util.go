@@ -56,13 +56,14 @@ func ViewDatabase(db *sql.DB) {
 	fmt.Println(allStoredOrders)
 }
 
+func ResetOrderStatus(db *sql.DB, orderID string) {
+	originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = $1;`
+	_, err := db.Exec(originalOrderStatus, orderID)
+	CheckForErrors(err, "Could not reset order status")
+}
+
 func ResetDatabase(db *sql.DB, resetType string) {
-	if resetType == "order-new" {
-		// reset the order status
-		originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = 'orderID123456';`
-		_, err := db.Exec(originalOrderStatus)
-		CheckForErrors(err, "Could not reset database")
-	} else if resetType == "payment" {
+	if resetType == "payment" {
 		originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
 			"order_id": "orderID123456",
 			"merchant_id": "merchantID1234",
@@ -113,11 +114,6 @@ func ResetDatabase(db *sql.DB, resetType string) {
 		}', true) WHERE order_id = 'orderID123456';`
 
 		_, err := db.Exec(originalPayment)
-		CheckForErrors(err, "Could not reset database")
-	} else if resetType == "order-update" {
-		// reset order status
-		originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = 'orderID123456';`
-		_, err := db.Exec(originalOrderStatus)
 		CheckForErrors(err, "Could not reset database")
 	} else {
 		fmt.Fprintf(os.Stderr, "[%s] - Invalid type of reset", resetType)

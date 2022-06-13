@@ -38,8 +38,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	log.Printf("[%s] - received request to update order status", storedOrder.OrderID)
 
 	order, err := getOrder(ctx, storedOrder.OrderID, db)
-	fmt.Println("\n Order after getTransaction()")
-	fmt.Println(order)
+
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return storedOrder.Order, models.NewErrUpdateOrderStatus(err.Error())
@@ -47,9 +46,6 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	// Set order to status to "pending"
 	order.OrderStatus = "Pending"
-
-	fmt.Println("Changed order status:")
-	fmt.Println(order)
 
 	err = saveOrder(ctx, order, storedOrder.OrderID, db)
 	if err != nil {
@@ -63,7 +59,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	utils.ViewDatabase(db)
 
 	// Only for restoring database for testing reasons
-	// utils.ResetDatabase(db, "order-update")
+	// utils.ResetOrderStatus(db, storedOrder.OrderID)
 	// fmt.Println("\nStored orders after reset:")
 	// utils.ViewDatabase(db)
 
