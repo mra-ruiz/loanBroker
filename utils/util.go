@@ -5,7 +5,6 @@ import (
 	"e-commerce-app/models"
 	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -62,61 +61,32 @@ func ResetOrderStatus(db *sql.DB, orderID string) {
 	CheckForErrors(err, "Could not reset order status")
 }
 
-func ResetDatabase(db *sql.DB, resetType string) {
-	if resetType == "payment" {
-		originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
-			"order_id": "orderID123456",
-			"merchant_id": "merchantID1234",
-			"payment_type": "creditcard",
-			"payment_amount": 6.5,
-			"transaction_id": "transactionID7845764",
-			"transaction_date": "01-1-2022"
-		}', true) WHERE order_id = 'orderID123456';`
+func ResetOrderPayment(db *sql.DB, orderID string) {
+	originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
+		"order_id": "orderID123456",
+		"merchant_id": "merchantID1234",
+		"payment_type": "creditcard",
+		"payment_amount": 6.5,
+		"transaction_id": "transactionID7845764",
+		"transaction_date": "01-1-2022"
+	}', true) WHERE order_id = $1;`
 
-		_, err := db.Exec(originalPayment)
-		CheckForErrors(err, "Could not reset database")
-	} else if resetType == "inventory-reserve" { 
-		originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-			"transaction_id": "transactionID7845764", 
-			"transaction_date": "01-1-2022", 
-			"order_id": "orderID123456", 
-			"items": [
-				"Pencil", 
-				"Paper"
-			], 
-			"transaction_type": "online"
-		}', true) WHERE order_id = 'orderID123456';`
+	_, err := db.Exec(originalPayment, orderID)
+	CheckForErrors(err, "Could not reset database")
+}
 
-		_, err := db.Exec(originalInventory)
-		CheckForErrors(err, "Could not reset database")
-	} else if resetType == "inventory-release" {
-		originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-			"transaction_id": "transactionID7845764", 
-			"transaction_date": "01-1-2022", 
-			"order_id": "orderID123456", 
-			"items": [
-				"Pencil", 
-				"Paper"
-			], 
-			"transaction_type": "online"
-		}', true) WHERE order_id = 'orderID123456';`
+func ResetOrderInventory(db *sql.DB, orderID string) {
+	originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
+		"transaction_id": "transactionID7845764", 
+		"transaction_date": "01-1-2022", 
+		"order_id": "orderID123456", 
+		"items": [
+			"Pencil", 
+			"Paper"
+		], 
+		"transaction_type": "online"
+	}', true) WHERE order_id = $1;`
 
-		_, err := db.Exec(originalInventory)
-		CheckForErrors(err, "Could not reset database")
-	} else if resetType == "refund" {
-		originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
-			"order_id": "orderID123456",
-			"merchant_id": "merchantID1234",
-			"payment_type": "creditcard",
-			"payment_amount": 6.5,
-			"transaction_id": "transactionID7845764",
-			"transaction_date": "01-1-2022"
-		}', true) WHERE order_id = 'orderID123456';`
-
-		_, err := db.Exec(originalPayment)
-		CheckForErrors(err, "Could not reset database")
-	} else {
-		fmt.Fprintf(os.Stderr, "[%s] - Invalid type of reset", resetType)
-        os.Exit(1)
-	}
+	_, err := db.Exec(originalInventory, orderID)
+	CheckForErrors(err, "Could not reset database")
 }

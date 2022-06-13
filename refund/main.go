@@ -63,7 +63,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	utils.ViewDatabase(db)
 
 	// Only for restoring database for testing reasons
-	// utils.ResetDatabase(db, "refund")
+	// utils.ResetOrderPayment(db, storedOrder.OrderID)
 	// fmt.Println("\nStored orders after reset:")
 	// utils.ViewDatabase(db)
 

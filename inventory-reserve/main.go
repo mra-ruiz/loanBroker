@@ -57,13 +57,13 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	log.Printf("[%s] - reservation processed", storedOrder.OrderID)
 
-	fmt.Println("Updated stored orders:")
+	fmt.Println("\nUpdated stored orders:")
 	utils.ViewDatabase(db)
 
 	// Only for restoring database for testing reasons
-	// utils.ResetDatabase(db, "inventory-reserve")
-	// fmt.Println("Stored orders after reset:")
-	// utils.ViewDatabase(db)
+	utils.ResetOrderInventory(db, storedOrder.OrderID)
+	fmt.Println("\nStored orders after reset:")
+	utils.ViewDatabase(db)
 
 	// close database
 	defer db.Close()
