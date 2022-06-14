@@ -1,11 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"e-commerce-app/models"
+	"e-commerce-app/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,37 +21,44 @@ var scenarioSuccessfulOrder = "../test/order7.json"
 func TestHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	o := parseOrder(scenarioSuccessfulOrder)
-	orderSlice := []models.Order{o}
+	t.Run("ProcessPayment", func(t *testing.T) {
 
-	order, err := handler(nil, orderSlice, o)
-	if err != nil {
-		t.Fatal(err)
-	}
+		sto_ord := parseOrder(scenarioSuccessfulOrder)
+		db, err := utils.ConnectDatabase()
+		prepareTestData(db, sto_ord)
 
-	assert.NotEmpty(order.Inventory.TransactionID, "Inventory TransactionID must not be empty")
+		stored_order, err := handler(nil, sto_ord, db)
+		if err != nil {
+			t.Fatal(err)
+		}
 
+		assert.NotEmpty(stored_order.Order.Inventory.TransactionID, "Inventory TransactionID must not be empty")
+
+	})
 }
 
-// func TestErrorIsOfTypeErrInventoryUpdate(t *testing.T) {
-// 	assert := assert.New(t)
+func TestErrorIsOfTypeErrInventoryUpdate(t *testing.T) {
+	assert := assert.New(t)
+	t.Run("ProcessPaymentErr", func(t *testing.T) {
 
-// 	input := parseOrder(scenarioErrInventoryUpdate)
-// 	inputSlice := []models.Order{input}
+		sto_ord := parseOrder(scenarioErrInventoryUpdate)
+		db, err := utils.ConnectDatabase()
+		prepareTestData(db, sto_ord)
 
-// 	order, err := handler(nil, inputSlice, input)
-// 	if err != nil {
-// 		fmt.Print(err)
-// 	}
+		stored_order, err := handler(nil, sto_ord, db)
+		if err != nil {
+			fmt.Print(err)
+		}
 
-// 	if assert.Error(err) {
-// 		errorType := reflect.TypeOf(err)
-// 		assert.Equal(errorType.String(), "*models.ErrReserveInventory", "Type does not match *models.ErrReserveInventory")
-// 		assert.Empty(order.OrderID)
-// 	}
-// }
+		if assert.Error(err) {
+			errorType := reflect.TypeOf(err)
+			assert.Equal(errorType.String(), "*models.ErrReserveInventory", "Type does not match *models.ErrReserveInventory")
+			assert.Empty(stored_order.OrderID)
+		}
+	})
+}
 
-func parseOrder(filename string) models.Order {
+func parseOrder(filename string) models.StoredOrder {
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		println("opening input file", err.Error())
@@ -57,10 +68,18 @@ func parseOrder(filename string) models.Order {
 
 	jsonParser := json.NewDecoder(inputFile)
 
-	order := models.Order{}
-	if err = jsonParser.Decode(&order); err != nil {
+	stored_order := models.StoredOrder{}
+	if err = jsonParser.Decode(&stored_order); err != nil {
 		println("parsing input file", err.Error())
 	}
 
-	return order
+	return stored_order
+}
+
+func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
+	order_id := sto_ord.OrderID
+	order_info := sto_ord.Order
+	command := `UPDATE stored_orders SET order_id = $1, order_info = $2;`
+	_, err := db.Exec(command, order_id, order_info)
+	utils.CheckForErrors(err, "Could not set up database for test")
 }
