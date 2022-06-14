@@ -48,7 +48,7 @@ func importDbData(db *sql.DB) []models.StoredOrder {
 
 	for rows.Next() {
 		if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
-			utils.CheckForErrors(err, "Error with scan")
+			utils.CheckForErrors(err, "ImportDBData(): Error with scan")
 		} else {
 			// fmt.Println("Here's where scan has no error")
 		}
