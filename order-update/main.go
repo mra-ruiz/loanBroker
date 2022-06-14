@@ -33,7 +33,7 @@ func receive( ctx context.Context, e cloudevents.Event ) {
 	}
 }
 
-func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.Order, error) {
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 
 	log.Printf("[%s] - received request to update order status", storedOrder.OrderID)
 
@@ -41,7 +41,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
-		return storedOrder.Order, models.NewErrUpdateOrderStatus(err.Error())
+		return storedOrder, models.NewErrUpdateOrderStatus(err.Error())
 	}
 
 	// Set order to status to "pending"
@@ -50,7 +50,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	err = saveOrder(ctx, order, storedOrder.OrderID, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
-		return storedOrder.Order, models.NewErrUpdateOrderStatus(err.Error())
+		return storedOrder, models.NewErrUpdateOrderStatus(err.Error())
 	}
 
 	log.Printf("[%s] - order status updated to pending", storedOrder.OrderID)
@@ -65,7 +65,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	// close database
 	defer db.Close()
-	return storedOrder.Order, nil
+	return storedOrder, nil
 }
 
 // getOrder retrieves a specified from DynamoDB and marshals it to a Order type
