@@ -33,7 +33,7 @@ func receive( ctx context.Context, e cloudevents.Event ) {
 	}
 }
 
-func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.Order, error) {
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 
 	log.Printf("[%s] - processing refund", storedOrder.OrderID)
 
@@ -41,7 +41,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	payment, err := getTransaction(ctx, storedOrder.OrderID, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
-		return storedOrder.Order, models.NewErrProcessRefund(err.Error())
+		return storedOrder, models.NewErrProcessRefund(err.Error())
 	}
 
 	// process the refund for the order
@@ -51,7 +51,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	err = saveTransaction(ctx, payment, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
-		return storedOrder.Order, models.NewErrProcessRefund(err.Error())
+		return storedOrder, models.NewErrProcessRefund(err.Error())
 	}
 
 	// save state
@@ -69,7 +69,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	// close database
 	defer db.Close()
-	return storedOrder.Order, nil
+	return storedOrder, nil
 }
 
 // returns a specified payment transaction from the database
