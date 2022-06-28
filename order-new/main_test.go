@@ -29,6 +29,9 @@ func TestHandler(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioSuccessfulOrder)
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			_ = fmt.Errorf("Error with ConnectDatabase() in TestHandler(): %w", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -51,6 +54,9 @@ func TestErrorIsOfTypeErrProcessOrder(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrProcessOrder)
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			_ = fmt.Errorf("Error with ConnectDatabase() in TestHandler(): %w", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -92,5 +98,6 @@ func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
 	_, err := db.Exec(command, order_id, order_info)
 	if err != nil {
 		_ = fmt.Errorf("Could not set up database for test: %w", err)
+		os.Exit(1)
 	}
 }

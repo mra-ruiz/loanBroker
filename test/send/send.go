@@ -7,6 +7,7 @@ import (
 	"e-commerce-app/utils"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 
@@ -17,6 +18,10 @@ func main() {
 	fmt.Println("Hi! I am going to send a CloudEvent :)")
 
 	db, err := utils.ConnectDatabase()
+	if err != nil {
+		_ = fmt.Errorf("Could not connect to database: %w", err)
+		os.Exit(1)
+	}
 
 	var allStoredOrders = importDbData(db)
 
@@ -24,6 +29,7 @@ func main() {
 	c, err := cloudevents.NewClientHTTP()
 	if err != nil {
 		_ = fmt.Errorf("Failed to create client: %w", err)
+		os.Exit(1)
 	}
 
 

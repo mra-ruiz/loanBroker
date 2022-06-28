@@ -16,7 +16,7 @@ func ConnectDatabase() (*sql.DB, error) {
     password := "fbbc5ede25b2a0a0f21273139a774e94ae76a624f4ecf9dfef412bd029268cb7"
     dbname := "ibmclouddb"
 
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
 	
 	// open database
 	db, err := sql.Open("postgres", psqlconn)
