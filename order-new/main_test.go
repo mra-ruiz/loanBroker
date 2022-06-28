@@ -90,5 +90,7 @@ func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
 	order_info := sto_ord.Order
 	command := `UPDATE stored_orders SET order_id = $1, order_info = $2;`
 	_, err := db.Exec(command, order_id, order_info)
-	utils.CheckForErrors(err, "Could not set up database for test")
+	if err != nil {
+		_ = fmt.Errorf("Could not set up database for test: %w", err)
+	}
 }
