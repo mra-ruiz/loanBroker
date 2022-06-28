@@ -30,6 +30,9 @@ func TestHandler(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioSuccessfulOrder)
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			fmt.Printf("TestHandler(): Could not connect to database: %v", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -48,6 +51,9 @@ func TestErrorIsOfTypeErrProcessPayment(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrProcessPayment)
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			fmt.Printf("TestErrorIsOfTypeErrProcessPayment(): Could not connect to database: %v", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -66,7 +72,7 @@ func TestErrorIsOfTypeErrProcessPayment(t *testing.T) {
 func parseOrder(filename string) models.StoredOrder {
 	inputFile, err := os.Open(filename)
 	if err != nil {
-		println("opening input file", err.Error())
+		fmt.Printf("parseOrder(): opening input file: %v", err.Error())
 	}
 
 	defer inputFile.Close()
@@ -75,7 +81,7 @@ func parseOrder(filename string) models.StoredOrder {
 
 	stored_order := models.StoredOrder{}
 	if err = jsonParser.Decode(&stored_order); err != nil {
-		println("parsing input file", err.Error())
+		fmt.Printf("parseOrder(): parsing input file: %v", err.Error())
 	}
 
 	return stored_order
@@ -86,5 +92,7 @@ func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
 	order_info := sto_ord.Order
 	command := `UPDATE stored_orders SET order_id = $1, order_info = $2;`
 	_, err := db.Exec(command, order_id, order_info)
-	utils.CheckForErrors(err, "Could not set up database for test")
+	if err != nil {
+		fmt.Printf("prepareTestData(): Could not set up database for test: %v", err)
+	}
 }
