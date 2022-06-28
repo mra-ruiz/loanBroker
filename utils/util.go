@@ -8,13 +8,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func CheckForErrors(err error, s string) error {
-	if err != nil {
-		return fmt.Errorf("Could not reset database: %w", err)
-	}
-	return fmt.Errorf(s, err)
-}
-
 func ConnectDatabase() (*sql.DB, error) {
 	// connection string
 	host := "0b536a47-b602-4e97-bb22-2fb574ec2db6.6131b73286f34215871dfad7254b4f7d.databases.appdomain.cloud"

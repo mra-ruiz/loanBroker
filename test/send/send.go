@@ -22,7 +22,10 @@ func main() {
 
 	// Create client
 	c, err := cloudevents.NewClientHTTP()
-	utils.CheckForErrors(err, "Failed to create client")
+	if err != nil {
+		_ = fmt.Errorf("Failed to create client: %w", err)
+	}
+
 
 	// Create an Event.
 	event :=  cloudevents.NewEvent()
@@ -43,12 +46,17 @@ func importDbData(db *sql.DB) []models.StoredOrder {
 	var allStoredOrders []models.StoredOrder
 	var storedOrder models.StoredOrder
 	rows, err := db.Query(`SELECT * FROM stored_orders`)
-
-	utils.CheckForErrors(err, "send: Could not query select * from stored_orders")
+	if err != nil {
+		_ = fmt.Errorf("send: Could not query select * from stored_orders: %w", err)
+		return nil
+	}
 
 	for rows.Next() {
 		if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
-			utils.CheckForErrors(err, "ImportDBData(): Error with scan")
+			if err != nil {
+				_ = fmt.Errorf("ImportDBData(): Error with scan: %w", err)
+				return nil
+			}
 		} else {
 			// fmt.Println("Here's where scan has no error")
 		}
