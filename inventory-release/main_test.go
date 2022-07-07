@@ -26,6 +26,9 @@ func TestHandler(t *testing.T) {
 		sto_ord := parseOrder(scenarioSuccessfulOrder)
 		sto_ord.OrderID = "77063fe3-56d9-4c51-b91f-71929834ce03"
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			fmt.Printf("TestHandler(): Error with ConnectDatabase(): %v", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -44,6 +47,9 @@ func TestErrorIsOfTypeErrProcessRefund(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrProcessRefund)
 		db, err := utils.ConnectDatabase()
+		if err != nil {
+			fmt.Printf("TestErrorIsOfTypeErrInventoryUpdate(): Error with ConnectDatabase(): %v", err)
+		}
 		prepareTestData(db, sto_ord)
 
 		stored_order, err := handler(nil, sto_ord, db)
@@ -82,5 +88,7 @@ func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
 	order_info := sto_ord.Order
 	command := `UPDATE stored_orders SET order_id = $1, order_info = $2;`
 	_, err := db.Exec(command, order_id, order_info)
-	utils.CheckForErrors(err, "Could not set up database for test")
+	if err != nil {
+		fmt.Printf("prepareTestData(): Error updating database: %v", err)
+	}
 }
