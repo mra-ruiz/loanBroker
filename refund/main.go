@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"e-commerce-app/models"
 	"e-commerce-app/utils"
@@ -16,21 +17,37 @@ import (
 func main() {
 	fmt.Println("Starting credit card refund ...")
 	c, err := cloudevents.NewClientHTTP()
-	utils.CheckForErrors(err, "Failed to create client")
+	if err != nil {
+		fmt.Printf("Failed to create client: %v", err)
+		os.Exit(1)
+	}	
 	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
-func receive( ctx context.Context, e cloudevents.Event ) {	
+func receive( ctx context.Context, e cloudevents.Event ) error {	
 	db, err := utils.ConnectDatabase()
+	if err != nil {
+		fmt.Printf("receive() - Could not connect to database: %v", err)
+		return fmt.Errorf("receive() - Could not connect to database: %w", err)
+	}
 
 	var allStoredOrders []models.StoredOrder
 
 	err = json.Unmarshal(e.Data(), &allStoredOrders)
-	utils.CheckForErrors(err, "Could not unmarshall e.Data() into type allStoredOrders")
+	if err != nil {
+		fmt.Printf("Could not unmarshall e.Data() into type allStoredOrders: %v", err)
+		return fmt.Errorf("Could not unmarshall e.Data() into type allStoredOrders: %w", err)
+	}
 	
 	for i := range allStoredOrders {
-		handler(ctx, allStoredOrders[i], db)
+		_, err = handler(ctx, allStoredOrders[i], db)
+		if err != nil {
+			fmt.Printf("Error in handler(): %v", err)
+			return fmt.Errorf("Error in handler(): %w", err)
+		}
 	}
+
+	return nil
 }
 
 func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
@@ -61,11 +78,23 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 
 	fmt.Println("\nUpdated stored orders:")
 	utils.ViewDatabase(db)
+	if err != nil {
+		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
+		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
+	}
 
 	// Only for restoring database for testing reasons
-	// utils.ResetOrderPayment(db, storedOrder.OrderID)
+	// err = utils.ResetOrderPayment(db, storedOrder.OrderID)
+	// if err != nil {
+	// 	fmt.Printf("Error with ResetOrderPayment() in handler(): %v", err)
+	// 	return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderPayment() in handler(): %w", err)
+	// }
 	// fmt.Println("\nStored orders after reset:")
-	// utils.ViewDatabase(db)
+	// err = utils.ViewDatabase(db)
+	// if err != nil {
+	// 	fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
+	// 	return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
+	// }
 
 	// close database
 	defer db.Close()
@@ -76,7 +105,10 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Payment, error) {
 	// Searching for payment
 	resultingPayment, err := db.Query(`select order_info -> 'payment' from stored_orders where order_id = $1;`, orderID)
-	utils.CheckForErrors(err, "Could not search for payment")
+	if err != nil {
+		fmt.Printf("getTransaction(): Could not search for payment %v", err)
+		return models.Payment{}, fmt.Errorf("getTransaction(): Could not search for payment %w", err)
+	}
 
 	// Convert payment of type JSONB to type models.Payment
 	var payment models.Payment
@@ -94,12 +126,18 @@ func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Pay
 func saveTransaction(ctx context.Context, payment models.Payment, db *sql.DB) error {
 	// converting payment into a byte slice
 	paymentBytes, err := json.Marshal(payment)
-	utils.CheckForErrors(err, "Could not marshall payment")
+	if err != nil {
+		fmt.Printf("saveTransaction(): Could not marshall payment: %v", err)
+		return fmt.Errorf("saveTransaction(): Could not marshall payment: %w", err)
+	}
 
 	// Updating payment of specific order
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, paymentBytes, payment.OrderID)
-	utils.CheckForErrors(err, "Could not update payment")
+	if err != nil {
+		fmt.Printf("saveTransaction(): Could not update payment: %v", err)
+		return fmt.Errorf("saveTransaction(): Could not update payment: %w", err)
+	}
 
 	return nil
 }
