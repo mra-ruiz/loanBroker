@@ -55,6 +55,32 @@ func ViewDatabase(db *sql.DB) error {
 	return nil
 }
 
+func ImportDbData(db *sql.DB) []models.StoredOrder {
+	var allStoredOrders []models.StoredOrder
+	var storedOrder models.StoredOrder
+	rows, err := db.Query(`SELECT * FROM stored_orders`)
+	if err != nil {
+		_ = fmt.Errorf("send: Could not query select * from stored_orders: %w", err)
+		return nil
+	}
+
+	for rows.Next() {
+		if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
+			if err != nil {
+				_ = fmt.Errorf("ImportDBData(): Error with scan: %w", err)
+				return nil
+			}
+		} else {
+			// fmt.Println("Here's where scan has no error")
+		}
+		allStoredOrders = append(allStoredOrders, storedOrder)
+		fmt.Println("Original stored orders:")
+		fmt.Println(allStoredOrders)
+	}
+
+	return allStoredOrders
+}
+
 func ResetOrderStatus(db *sql.DB, orderID string) error {
 	originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = $1;`
 	_, err := db.Exec(originalOrderStatus, orderID)
