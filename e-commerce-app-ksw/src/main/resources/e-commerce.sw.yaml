@@ -1,5 +1,5 @@
 ---
-id: greetings
+id: commerce
 version: '1.0'
 name: Hello Person
 start: NewOrder
@@ -32,46 +32,3 @@ states:
   - functionRef:
       refName: inventoryReserve
   end: true
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
