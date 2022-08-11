@@ -75,7 +75,7 @@ You can play around and type the workflow definition by hand using the editor in
 
 ```yaml
 ---
-id: e-commerce
+id: commerce
 version: '1.0'
 name: Hello Person
 start: NewOrder
@@ -145,7 +145,7 @@ e-commerce-ksw   http://e-commerce-ksw.default.127.0.0.1.sslip.io   e-commerce-k
 To interact with the application, you can call the service via command line
 
 ```shell
-curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -H "ce-specversion: 1.0" -H "ce-type: dunno" -H "ce-id: 1" -H "ce-source: local" -d '{"workflowdata" : {"name": "John"}}'  http://e-commerce-app-ksw.default.127.0.0.1.sslip.io/e-commerce
+curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -H "ce-specversion: 1.0" -H "ce-type: dunno" -H "ce-id: 1" -H "ce-source: local" -d '{"workflowdata" : {"name": "John"}}'  http://e-commerce-app-ksw.default.127.0.0.1.sslip.io/commerce
 ```
 
 ## Resources
