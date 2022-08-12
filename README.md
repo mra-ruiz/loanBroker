@@ -10,6 +10,7 @@ This example aims to port [an example of AWS Step functions](https://github.com/
 4. [Quarkus CLI](https://quarkus.io/guides/cli-tooling)
 5. [Knative quickstart plugin](https://knative.dev/docs/getting-started/)
 6. [Kind](https://kind.sigs.k8s.io/docs/user/quick-start)
+7. PostgreSQL
 
 To edit your workflows:
 
@@ -33,9 +34,10 @@ export KO_DOCKER_REPO=kind.local
 export KIND_CLUSTER_NAME=knative # name of the kind cluster created by kn quickstart
 ```
 
-### Kubernetes integration
+### Knative integration
 
-In this example we use a YAML file to run the image for each function in the workflow. Below is the YAAML file for the first function order-new:
+In this example we use a YAML file to run the image for each function in the workflow. 
+Below is the YAML file for the first function order-new:
 
 ```yaml
 apiVersion: serving.knative.dev/v1
@@ -50,6 +52,17 @@ spec:
     spec:
       containers:
       - image: ko://e-commerce-app/order-new
+```
+
+### PostgreSQL integration
+
+The commerce application stores orders and inventories in postgreSQL. 
+
+Edit `config/infra/postgresql.yaml` and replace the provided values 
+by yours. Then deploy the secret:
+
+```shell
+kubectl apply config/infra/postgresql.yaml
 ```
 
 ### Apply the e-commerce YAML configs
