@@ -1,0 +1,34 @@
+---
+id: commerce
+version: '1.0'
+name: Hello Person
+start: NewOrder
+functions:
+- name: orderNew
+  type: custom
+  operation: "rest:post:/"
+- name: payment
+  type: custom
+  operation: "rest:post:/"
+- name: inventoryReserve
+  type: custom
+  operation: "rest:post:/"
+states:
+- name: NewOrder
+  type: operation
+  actions:
+  - functionRef:
+      refName: orderNew
+  transition: ProcessPayment
+- name: ProcessPayment
+  type: operation
+  actions:
+  - functionRef:
+      refName: payment
+  transition: InvReserve
+- name: InvReserve
+  type: operation
+  actions:
+  - functionRef:
+      refName: inventoryReserve
+  end: true

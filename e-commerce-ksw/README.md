@@ -1,4 +1,4 @@
-# e-commerce-app-ksw Project
+# e-commerce-ksw Project
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
@@ -43,7 +43,7 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 ./mvnw package -Pnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/e-commerce-app-ksw-1.0-runner`
+You can then execute your native executable with: `./target/e-commerce-ksw-1.0.0-SNAPSHOT-runner`
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
@@ -54,6 +54,18 @@ If you want to learn more about building native executables, please consult http
 - SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
 
 ## Provided Code
+
+### Kogito Serverless Workflow codestart
+
+This is an example Kogito Serverless Workflow Quarkus codestart, it contains a sample Serverless Workflow definition for REST code generation.
+
+[Related guide section...](https://quarkus.io/guides/kogito)
+
+This Kogito Serverless Workflow project contains a sample workflow definition as described in the [Quarkus Kogito guide](https://quarkus.io/guides/kogito).
+The goal is to showcase automatic REST endpoint codegen, based on the content of the model.
+The `greet.sw.json` workflow will greet users in different languages based on the input.
+
+You can reference the [full guide on the Quarkus website](https://quarkus.io/guides/kogito).
 
 ### RESTEasy JAX-RS
 
