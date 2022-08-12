@@ -9,18 +9,28 @@ This example aims to port [an example of AWS Step functions](https://github.com/
 3. [Maven installed](https://maven.apache.org/install.html)
 4. [Quarkus CLI](https://quarkus.io/guides/cli-tooling)
 5. [Knative quickstart plugin](https://knative.dev/docs/getting-started/)
+6. [Kind](https://kind.sigs.k8s.io/docs/user/quick-start)
 
 To edit your workflows:
 
 1. Visual Studio Code with [Red Hat Java Plugin](https://marketplace.visualstudio.com/items?itemName=redhat.java) installed
 2. [Serverless Workflow Editor](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-extension-serverless-workflow-editor)
 
-## Building images for your functions with ko
+## Creating a Knative cluster
 
-ko depends on an environment variable, KO_DOCKER_REPO, to identify where it should push images that it builds. Typically this will be a remote registry, e.g.:
+Skip this step if you have already access to a Kubernetes with Knative Serving.
+
+Create a Kind cluster and install Knative Serving by using this command:
 
 ```shell
-export KO_DOCKER_REPO=docker.io/<your-docker-id>
+kn quickstart kind --install-serving
+```
+
+ko supports loading images directly to Kind local registry: 
+
+```shell
+export KO_DOCKER_REPO=kind.local
+export KIND_CLUSTER_NAME=knative # name of the kind cluster created by kn quickstart
 ```
 
 ### Kubernetes integration
@@ -42,15 +52,17 @@ spec:
       - image: ko://e-commerce-app/order-new
 ```
 
-### Apply the resolved YAML config
+### Apply the e-commerce YAML configs
 
-Use `ko apply` to apply the resolved YAML config for each function.
+Use `ko apply` to apply the YAML config for all functions:
 
 ```shell
-ko apply -f config/<resolved-yaml-config>.yaml
+ko apply -f config
 ```
 
-## Creating the project
+## Building and Deploying the Workflow 
+
+### Creating the project
 
 To create the project skeleton, run:
 
@@ -68,7 +80,7 @@ The `org.acme:e-commerce-ksw` is the group id, artifact id, and version of your 
 
 This command will create a Maven Quarkus project in the `e-commerce-ksw` directory with all required Kogito dependencies.
 
-## Creating your first Workflow
+### Creating your first Workflow
 
 Go to the directory `src/main/resources` and create a file named `e-commerce.sw.yaml`. 
 You can play around and type the workflow definition by hand using the editor intellisense feature or copy and paste from the snnipet below:
@@ -118,20 +130,26 @@ You can use the Quarkus CLI to build your image with the following command:
 quarkus build \
   -Dquarkus.container-image.build=true \
   -Dquarkus.kubernetes.deployment-target=knative \
-  -Dquarkus.container-image.group=<your-group> \
-    -Dquarkus.container-image.tag=latest
+  -Dquarkus.container-image.registry=kind.local \
+  -Dquarkus.container-image.tag=latest
 ```
 
-Assuming you have [installed Knative locally](https://knative.dev/docs/getting-started/), on your kind cluster, run:
+Load the produced container image into Kind:
+
+```shell
+kind load docker-image kind.local/ruizcm/e-commerce-ksw:latest --name=knative
+```
+
+Then deploy the workflow as a Knative application:
 
 ```shell
 # Install the app!
-kubectl apply -f target/kubernetes/knative.yml
+kn service create -f target/kubernetes/knative.yml
 
 # You should see something like "service.serving.knative.dev/e-commerce-ksw created" in the terminal
 ```
 
-Wait a couple of seconds and run `kn service list`:
+Check the service is ready:
 
 ```shell
 kn service list
@@ -145,7 +163,14 @@ e-commerce-ksw   http://e-commerce-ksw.default.127.0.0.1.sslip.io   e-commerce-k
 To interact with the application, you can call the service via command line
 
 ```shell
-curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -H "ce-specversion: 1.0" -H "ce-type: dunno" -H "ce-id: 1" -H "ce-source: local" -d '{"workflowdata" : {"name": "John"}}'  http://e-commerce-app-ksw.default.127.0.0.1.sslip.io/commerce
+curl -v -H 'Content-Type:application/json' \
+  -H 'Accept:application/json'\
+  -H "ce-specversion: 1.0" \ 
+  -H "ce-type: dunno" \ 
+  -H "ce-id: 1" \ 
+  -H "ce-source: local" \
+  -d '{"workflowdata" : {"name": "John"}}' \
+  http://e-commerce-ksw.default.127.0.0.1.sslip.io/commerce
 ```
 
 ## Resources
