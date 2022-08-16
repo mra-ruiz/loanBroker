@@ -87,6 +87,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 	}
 
 	log.Printf("[%s] - reservation processed", storedOrder.OrderID)
+	resultStoredOrder := storedOrder
 
 	fmt.Println("\nUpdated stored orders:")
 	utils.ViewDatabase(db)
@@ -111,7 +112,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 
 	// close database
 	defer db.Close()
-	return storedOrder, nil
+	return resultStoredOrder, nil
 }
 
 func saveInventory(inventory models.Inventory, db *sql.DB) error {

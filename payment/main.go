@@ -92,6 +92,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 	storedOrder.Order.Payment = payment
 
 	log.Printf("[%s] - payment processed", storedOrder.OrderID)
+	resultStoredOrder := storedOrder
 
 	fmt.Println("\nUpdated stored orders:")
 	err = utils.ViewDatabase(db)
@@ -115,7 +116,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 
 	// close database
 	defer db.Close()
-	return storedOrder, nil
+	return resultStoredOrder, nil
 }
 
 func savePayment(payment models.Payment, db *sql.DB) error {

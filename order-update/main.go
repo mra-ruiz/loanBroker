@@ -84,6 +84,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 
 	fmt.Println()
 	log.Printf("[%s] - order status updated to pending", storedOrder.OrderID)
+	resultStoredOrder := models.StoredOrder{OrderID: storedOrder.OrderID, Order: order}
 
 	fmt.Println("\nUpdated stored orders:")
 	err = utils.ViewDatabase(db)
@@ -107,7 +108,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 
 	// close database
 	defer db.Close()
-	return storedOrder, nil
+	return resultStoredOrder, nil
 }
 
 func getOrder(orderID string, db *sql.DB) (models.Order, error) {
