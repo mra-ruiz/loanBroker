@@ -1,60 +1,72 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"os"
+	"net/http"
 
 	"e-commerce-app/models"
 	"e-commerce-app/utils"
-
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 func main() {
 	fmt.Println("Starting inventory release ...")
-	c, err := cloudevents.NewClientHTTP()
-	if err != nil {
-		fmt.Printf("Failed to create client: %v", err)
-		os.Exit(1)
+	http.HandleFunc("/", prepareData)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
 	}
-	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
-func receive( ctx context.Context, e cloudevents.Event ) error {	
+func prepareData(w http.ResponseWriter, req *http.Request) {
+	// reading headers
+	for k, v := range req.Header {
+		fmt.Printf("%s=%s\n", k, v[0])
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		fmt.Printf("Error with io.ReadAll() in prepareData(): : %v", err)
+		log.Println(err)
+		return
+	}
+	defer req.Body.Close()
+	fmt.Println("#####################################")
+	fmt.Println(string(body))
+
 	db, err := utils.ConnectDatabase()
 	if err != nil {
-		fmt.Printf("receive(): Could not connect to database: %v", err)
-		return fmt.Errorf("receive(): Could not connect to database: %w", err)
+		fmt.Printf("In prepareData(): Could not connect to database: %v", err)
+		return
 	}
 
-	var allStoredOrders []models.StoredOrder
-
-	err = json.Unmarshal(e.Data(), &allStoredOrders)
-	if err != nil {
-		fmt.Printf("receive(): Could not unmarshall e.Data() into type allStoredOrders: %v", err)
-		return fmt.Errorf("receive(): Could not unmarshall e.Data() into type allStoredOrders: %w", err)
-	}
+	allStoredOrders := utils.ImportDbData(db)
+	var returned_stored_order models.StoredOrder
+	var bytesRetSto []byte
 
 	for i := range allStoredOrders {
-		_, err = handler(ctx, allStoredOrders[i], db)
+		returned_stored_order, err = handler(allStoredOrders[i], db)
 		if err != nil {
-			return fmt.Errorf("Error in handler(): %w", err)
+			fmt.Printf("Error with handler() in prepareData(): : %v", err)
+			return
 		}
+		// converting returned stored order into a byte slice
+		bytesRetSto, err = json.Marshal(returned_stored_order)
+		fmt.Printf("returned stored order:\n%v", returned_stored_order)
+		w.Write(bytesRetSto)
 	}
-
-	return nil
 }
 
-func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
+func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 	
+	fmt.Println("#####################################")
+
 	log.Printf("[%s] - processing inventory release", storedOrder.OrderID)
 	
-	// Find inventory transaction
-	inventory, err := getTransaction(ctx, storedOrder.OrderID, db)
+	// Find inventory transaction in database
+	inventory, err := getTransaction(storedOrder.OrderID, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return storedOrder, models.NewErrReleaseInventory(err.Error())
@@ -64,7 +76,7 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	inventory.Release()
 
 	// Saves transaction and updates inventory TransactionType to 'Release' 
-	err = saveTransaction(ctx, inventory, db)
+	err = saveTransaction(inventory, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return storedOrder, models.NewErrReleaseInventory(err.Error())
@@ -83,24 +95,24 @@ func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (m
 	}
 
 	// Only for restoring database for testing reasons
-	// err = utils.ResetOrderInventory(db, storedOrder.OrderID)
-	// if err != nil {
-	// 	fmt.Printf("Error with ResetOrderInventory() in handler(): %v", err)
-	// 	return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderInventory() in handler(): %w", err)
-	// }
-	// fmt.Println("\nStored orders after reset:")
-	// err = utils.ViewDatabase(db)
-	// if err != nil {
-	// 	fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
-	// 	return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
-	// }
+	err = utils.ResetOrderInventory(db, storedOrder.OrderID)
+	if err != nil {
+		fmt.Printf("Error with ResetOrderInventory() in handler(): %v", err)
+		return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderInventory() in handler(): %w", err)
+	}
+	fmt.Println("\nStored orders after reset:")
+	err = utils.ViewDatabase(db)
+	if err != nil {
+		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
+		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
+	}
 
 	// close database
 	defer db.Close()
 	return storedOrder, nil
 }
 
-func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Inventory, error) {
+func getTransaction(orderID string, db *sql.DB) (models.Inventory, error) {
 	// Searching for inventory
 	resultingInventory, err := db.Query(`select order_info -> 'inventory' from stored_orders where order_id = $1;`, orderID)
 	if err != nil {
@@ -120,7 +132,7 @@ func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Inv
 	return inventory, nil
 }
 
-func saveTransaction(ctx context.Context, inventory models.Inventory, db *sql.DB) error {
+func saveTransaction(inventory models.Inventory, db *sql.DB) error {
 	// converting Inventory into a byte slice
 	inventoryBytes, err := json.Marshal(inventory)
 	if err != nil {
@@ -132,8 +144,8 @@ func saveTransaction(ctx context.Context, inventory models.Inventory, db *sql.DB
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, inventoryBytes, inventory.OrderID)
 	if err != nil {
-		fmt.Printf("saveTransaction(): Could not update inventory: %v", err)
-		return fmt.Errorf("saveTransaction(): Could not update inventory: %w", err)
+		fmt.Printf("Error with Exec() in saveTransaction(): Could not update inventory: %v", err)
+		return fmt.Errorf("Error with Exec() in saveTransaction(): Could not update inventory: %w", err)
 	}
 
 	return nil
