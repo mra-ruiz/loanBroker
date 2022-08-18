@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"e-commerce-app/models"
@@ -30,44 +29,41 @@ func TestHandler(t *testing.T) {
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(nil, sto_ord, db)
+		stored_order, err := handler(sto_ord, db)
 		if err != nil {
 			t.Fatal("Error failed to trigger with an invalid request")
 		}
 
 		assert.NotEmpty(stored_order.Order.Payment.TransactionID, "OrderID must be empty")
+		assert.True(stored_order.Order.Payment.PaymentType == "Credit", "PaymentType must not be 'Credit'")
 	})
 
 }
 
-func TestErrorIsOfTypeErrProcessRefund(t *testing.T) {
+func TestError(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("ErrProcessRefund", func(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrProcessRefund)
 		db, err := utils.ConnectDatabase()
 		if err != nil {
-			fmt.Printf("TestErrorIsOfTypeErrInventoryUpdate(): Error with ConnectDatabase(): %v", err)
+			fmt.Printf("TestError(): Error with ConnectDatabase(): %v", err)
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(nil, sto_ord, db)
+		stored_order, err := handler(sto_ord, db)
 		if err != nil {
 			fmt.Print(err)
 		}
 
-		if assert.Error(err) {
-			errorType := reflect.TypeOf(err)
-			assert.Equal(errorType.String(), "*models.ErrProcessRefund", "Type does not match *models.ErrProcessRefund")
-			assert.Empty(stored_order.OrderID)
-		}
+		assert.NotEmpty(stored_order.OrderID)
 	})
 }
 
 func parseOrder(filename string) models.StoredOrder {
 	inputFile, err := os.Open(filename)
 	if err != nil {
-		println("opening input file", err.Error())
+		println("parseOrder(): opening input file", err.Error())
 	}
 
 	defer inputFile.Close()
@@ -76,7 +72,7 @@ func parseOrder(filename string) models.StoredOrder {
 
 	stored_order := models.StoredOrder{}
 	if err = jsonParser.Decode(&stored_order); err != nil {
-		println("parsing input file", err.Error())
+		println("parseOrder(): parsing input file", err.Error())
 	}
 
 	return stored_order
