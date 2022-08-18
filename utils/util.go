@@ -1,14 +1,14 @@
 package utils
 
 import (
-    "database/sql"
-    "e-commerce-app/models"
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
-    "log"
+	"database/sql"
+	"e-commerce-app/models"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
 
-    _ "github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 func ConnectDatabase() (*sql.DB, error) {
