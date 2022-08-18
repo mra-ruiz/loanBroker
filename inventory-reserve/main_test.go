@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"e-commerce-app/models"
@@ -29,7 +30,7 @@ func TestHandler(t *testing.T) {
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(sto_ord, db)
+		stored_order, err := handler(nil, sto_ord, db)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,23 +40,27 @@ func TestHandler(t *testing.T) {
 	})
 }
 
-func TestError(t *testing.T) {
+func TestErrorIsOfTypeErrInventoryUpdate(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("ProcessPaymentErr", func(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrInventoryUpdate)
 		db, err := utils.ConnectDatabase()
 		if err != nil {
-			fmt.Printf("TestError(): Error with ConnectDatabase(): %v", err)
+			fmt.Printf("TestErrorIsOfTypeErrInventoryUpdate(): Error with ConnectDatabase(): %v", err)
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(sto_ord, db)
+		stored_order, err := handler(nil, sto_ord, db)
 		if err != nil {
 			fmt.Print(err)
 		}
 
-		assert.NotEmpty(stored_order.OrderID)
+		if assert.Error(err) {
+			errorType := reflect.TypeOf(err)
+			assert.Equal(errorType.String(), "*models.ErrReserveInventory", "Type does not match *models.ErrReserveInventory")
+			assert.Empty(stored_order.OrderID)
+		}
 	})
 }
 

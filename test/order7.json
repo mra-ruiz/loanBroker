@@ -21,17 +21,6 @@
             "description": "Cart item 3",
             "unit_price": 6.50
           }
-        ], 
-        "inventory":
-        {
-            "transaction_id": "transactionID7845764", 
-            "transaction_date": "01-1-2022", 
-            "order_id": "orderID123456", 
-            "items": [
-                "Pencil", 
-                "Paper"
-            ], 
-            "transaction_type": "online"
-        }
+        ]
       }
 }

@@ -24,3 +24,10 @@ spec:
     spec:
       containers:
       - image: ko://e-commerce-app/inventory-release
+        volumeMounts:
+          - name: postgresql
+            mountPath: /etc/postgresql
+      volumes:
+      - name: postgresql
+        secret:
+          secretName: postgresql

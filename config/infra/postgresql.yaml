@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql
+stringData:
+  creds.json: |
+    {
+      "host": "postgresql.example.com",
+      "port": "31466",
+      "user": "user",
+      "password": "password",
+      "dbname": "db"
+    }

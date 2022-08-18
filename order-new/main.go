@@ -91,7 +91,6 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 	}
 
 	fmt.Printf("[%s] - order status set to new", storedOrder.OrderID)
-	resultStoredOrder := storedOrder
 
 	fmt.Println("\nUpdated stored orders:")
 	err = utils.ViewDatabase(db)
@@ -115,7 +114,7 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 
 	// close database
 	defer db.Close()
-	return resultStoredOrder, nil
+	return storedOrder, nil
 }
 
 func saveOrder(updatedOrder models.StoredOrder, db *sql.DB) error {	

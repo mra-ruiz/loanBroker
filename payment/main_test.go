@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"e-commerce-app/models"
@@ -34,37 +35,37 @@ func TestHandler(t *testing.T) {
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(sto_ord, db)
+		stored_order, err := handler(nil, sto_ord, db)
 		if err != nil {
 			t.Fatal("Error failed to trigger with an invalid request")
 		}
 
-		assert.NotEmpty(stored_order.Order.Payment, "Payment must not be empty")
 		assert.NotEmpty(stored_order.Order.Payment.TransactionID, "PaymentTransactionID must not be empty")
-		assert.True(stored_order.Order.Payment.TransactionDate != sto_ord.Order.Payment.TransactionDate, "TransactionDate should be modified")
-		assert.True(stored_order.Order.Payment.TransactionID != sto_ord.Order.Payment.TransactionID, "TransactionID should be modified")
-		assert.True(stored_order.Order.Payment.PaymentType != sto_ord.Order.Payment.PaymentType, "PaymentType should be modified")
+
 	})
 }
 
-func TestError(t *testing.T) {
+func TestErrorIsOfTypeErrProcessPayment(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("ProcessPaymentErr", func(t *testing.T) {
 
 		sto_ord := parseOrder(scenarioErrProcessPayment)
 		db, err := utils.ConnectDatabase()
 		if err != nil {
-			fmt.Printf("TestError(): Could not connect to database: %v", err)
+			fmt.Printf("TestErrorIsOfTypeErrProcessPayment(): Could not connect to database: %v", err)
 		}
 		prepareTestData(db, sto_ord)
 
-		stored_order, err := handler(sto_ord, db)
+		stored_order, err := handler(nil, sto_ord, db)
 		if err != nil {
 			fmt.Print(err)
 		}
 
-		assert.NotEmpty(stored_order.Order)
-
+		if assert.Error(err) {
+			errorType := reflect.TypeOf(err)
+			assert.Equal(errorType.String(), "*models.ErrProcessPayment", "Type does not match *models.ErrProcessPayment")
+			assert.Empty(stored_order.OrderID)
+		}
 	})
 }
 

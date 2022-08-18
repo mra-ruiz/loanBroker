@@ -1,82 +1,71 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
+	"os"
 
 	"e-commerce-app/models"
 	"e-commerce-app/utils"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 func main() {
 	fmt.Println("Starting credit card refund ...")
-	http.HandleFunc("/", prepareData)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
-	}
+	c, err := cloudevents.NewClientHTTP()
+	if err != nil {
+		fmt.Printf("Failed to create client: %v", err)
+		os.Exit(1)
+	}	
+	log.Fatal(c.StartReceiver(context.Background(), receive));
 }
 
-func prepareData(w http.ResponseWriter, req *http.Request) {
-	// reading headers
-	for k, v := range req.Header {
-		fmt.Printf("%s=%s\n", k, v[0])
-	}
-
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		fmt.Printf("Error with io.ReadAll() in prepareData(): : %v", err)
-		log.Println(err)
-		return
-	}
-	defer req.Body.Close()
-	fmt.Println("#####################################")
-	fmt.Println(string(body))
-
+func receive( ctx context.Context, e cloudevents.Event ) error {	
 	db, err := utils.ConnectDatabase()
 	if err != nil {
-		fmt.Printf("In prepareData(): Could not connect to database: %v", err)
-		return
+		fmt.Printf("receive() - Could not connect to database: %v", err)
+		return fmt.Errorf("receive() - Could not connect to database: %w", err)
 	}
 
-	allStoredOrders := utils.ImportDbData(db)
-	var returned_stored_order models.StoredOrder
-	var bytesRetSto []byte
+	var allStoredOrders []models.StoredOrder
 
+	err = json.Unmarshal(e.Data(), &allStoredOrders)
+	if err != nil {
+		fmt.Printf("Could not unmarshall e.Data() into type allStoredOrders: %v", err)
+		return fmt.Errorf("Could not unmarshall e.Data() into type allStoredOrders: %w", err)
+	}
+	
 	for i := range allStoredOrders {
-		returned_stored_order, err = handler(allStoredOrders[i], db)
+		_, err = handler(ctx, allStoredOrders[i], db)
 		if err != nil {
-			fmt.Printf("Error with handler() in prepareData(): : %v", err)
-			return
+			fmt.Printf("Error in handler(): %v", err)
+			return fmt.Errorf("Error in handler(): %w", err)
 		}
-		// converting returned stored order into a byte slice
-		bytesRetSto, err = json.Marshal(returned_stored_order)
-		fmt.Printf("returned stored order:\n%v", returned_stored_order)
-		w.Write(bytesRetSto)
 	}
+
+	return nil
 }
 
-func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
-
-	fmt.Println("#####################################")
+func handler(ctx context.Context, storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
 
 	log.Printf("[%s] - processing refund", storedOrder.OrderID)
 
-	// Find Payment transaction for this order
-	payment, err := getTransaction(storedOrder.OrderID, db)
+	// find Payment transaction for this order
+	payment, err := getTransaction(ctx, storedOrder.OrderID, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return storedOrder, models.NewErrProcessRefund(err.Error())
 	}
 
-	// Process the refund for the order
+	// process the refund for the order
 	payment.Refund()
 
-	// Saves refunded transaction to the database
-	err = saveTransaction(payment, db)
+	// write to database.
+	err = saveTransaction(ctx, payment, db)
 	if err != nil {
 		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
 		return storedOrder, models.NewErrProcessRefund(err.Error())
@@ -85,36 +74,35 @@ func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, er
 	// save state
 	storedOrder.Order.Payment = payment
 
-	fmt.Println()
 	log.Printf("[%s] - refund processed", storedOrder.OrderID)
-	resultStoredOrder := storedOrder
 
 	fmt.Println("\nUpdated stored orders:")
-	err = utils.ViewDatabase(db)
+	utils.ViewDatabase(db)
 	if err != nil {
 		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
 		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
 	}
 
 	// Only for restoring database for testing reasons
-	err = utils.ResetOrderPayment(db, storedOrder.OrderID)
-	if err != nil {
-		fmt.Printf("Error with ResetOrderPayment() in handler(): %v", err)
-		return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderPayment() in handler(): %w", err)
-	}
-	fmt.Println("\nStored orders after reset:")
-	err = utils.ViewDatabase(db)
-	if err != nil {
-		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
-		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
-	}
+	// err = utils.ResetOrderPayment(db, storedOrder.OrderID)
+	// if err != nil {
+	// 	fmt.Printf("Error with ResetOrderPayment() in handler(): %v", err)
+	// 	return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderPayment() in handler(): %w", err)
+	// }
+	// fmt.Println("\nStored orders after reset:")
+	// err = utils.ViewDatabase(db)
+	// if err != nil {
+	// 	fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
+	// 	return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
+	// }
 
 	// close database
 	defer db.Close()
-	return resultStoredOrder, nil
+	return storedOrder, nil
 }
 
-func getTransaction(orderID string, db *sql.DB) (models.Payment, error) {
+// returns a specified payment transaction from the database
+func getTransaction(ctx context.Context, orderID string, db *sql.DB) (models.Payment, error) {
 	// Searching for payment
 	resultingPayment, err := db.Query(`select order_info -> 'payment' from stored_orders where order_id = $1;`, orderID)
 	if err != nil {
@@ -134,7 +122,8 @@ func getTransaction(orderID string, db *sql.DB) (models.Payment, error) {
 	return payment, nil
 }
 
-func saveTransaction(payment models.Payment, db *sql.DB) error {
+// saves refund transaction to the database
+func saveTransaction(ctx context.Context, payment models.Payment, db *sql.DB) error {
 	// converting payment into a byte slice
 	paymentBytes, err := json.Marshal(payment)
 	if err != nil {
@@ -146,8 +135,8 @@ func saveTransaction(payment models.Payment, db *sql.DB) error {
 	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
 	_, err = db.Exec(updateString, paymentBytes, payment.OrderID)
 	if err != nil {
-		fmt.Printf("Error with Exec() in saveTransaction(): Could not update payment: %v", err)
-		return fmt.Errorf("Error with Exec() in saveTransaction(): Could not update payment: %w", err)
+		fmt.Printf("saveTransaction(): Could not update payment: %v", err)
+		return fmt.Errorf("saveTransaction(): Could not update payment: %w", err)
 	}
 
 	return nil
