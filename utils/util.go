@@ -11,6 +11,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var (
+    DefaultCredsLocation = "/etc/postgresql/creds.json"
+)
+
+
 func ConnectDatabase() (*sql.DB, error) {
     // open database
     db, err := sql.Open("postgres", dataSourceName())
@@ -121,7 +126,7 @@ func ResetOrderInventory(db *sql.DB, orderID string) error {
 }
 
 func dataSourceName() string {
-    bytes, err := ioutil.ReadFile("/etc/postgresql/creds.json")
+    bytes, err := ioutil.ReadFile(DefaultCredsLocation)
     if err != nil {
         log.Fatalf("failed to load postgreSQL credentials: %v", err)
     }

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,153 +13,84 @@ import (
 	"e-commerce-app/utils"
 )
 
+var (
+	db *sql.DB
+)
+ 
 func main() {
-	fmt.Println("Received a new order ...")
-	// c, err := cloudevents.NewClientHTTP()
-	// if err != nil {
-	// 	fmt.Printf("Failed to create client: %v", err)
-	// 	os.Exit(1)
-	// }
+	connectDb()
 
-	// logger, err := zap.NewDevelopment()
-	// if err != nil {
-	// 	fmt.Printf("Logger error: %v", err)
-	// 	os.Exit(1)
-	// }
-
-	// fmt.Println("end of main .. almost")
-	// ctx := cecontext.WithLogger(context.Background(), logger.Sugar())
-	// log.Fatal(c.StartReceiver(ctx, receive));
-
-	http.HandleFunc("/", prepareData)
+	http.HandleFunc("/", handler)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func prepareData(w http.ResponseWriter, req *http.Request) {
-	// reading headers
-	for k, v := range req.Header {
-		fmt.Printf("%s=%s\n", k, v[0])
+func connectDb() {
+	var err error
+	db, err = utils.ConnectDatabase()
+	if err != nil {
+		fmt.Printf("Could not connect to database: %v", err)
+		log.Fatal(err)
 	}
+}
 
+func handler(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		fmt.Printf("Error with io.ReadAll() in prepareData(): : %v", err)
-		log.Println(err)
+		msg := fmt.Sprintf("Failed to read the request body: %v", err)
+		w.Write([]byte(msg))
+		w.WriteHeader(500) 
 		return
 	}
 	defer req.Body.Close()
-	fmt.Println("#####################################")
-	fmt.Println(string(body))
 
-	db, err := utils.ConnectDatabase()
+  var	neworder models.StoredOrder
+	err = json.Unmarshal(body, &neworder)
 	if err != nil {
-		fmt.Printf("In prepareData(): Could not connect to database: %v", err)
+		msg := fmt.Sprintf("Failed to unmarshal body: %v", err)
+		log.Println(msg)
+		w.Write([]byte(msg))
+		w.WriteHeader(500) 
 		return
 	}
 
-	allStoredOrders := utils.ImportDbData(db)
-	var returned_stored_order models.StoredOrder
-	var bytesRetSto []byte
-
-	for i := range allStoredOrders {
-		returned_stored_order, err = handler(allStoredOrders[i], db)
-		if err != nil {
-			fmt.Printf("Error with handler() in prepareData(): : %v", err)
-			return
-		}
-		// converting returned stored order into a byte slice
-		bytesRetSto, err = json.Marshal(returned_stored_order)
-		fmt.Printf("returned stored order:\n%v", returned_stored_order)
-		w.Write(bytesRetSto)
-	}
-}
-
-func handler(storedOrder models.StoredOrder, db *sql.DB) (models.StoredOrder, error) {
-
-	fmt.Println("#####################################")
-
-	log.Printf("[%s] - received new order", storedOrder.OrderID)
+	log.Printf("[%s] - received new order", neworder.OrderID)
 
 	// persist the order data. Set order status to new
-	storedOrder.Order.OrderStatus = "New"
+	neworder.Order.OrderStatus = "New"
 
-	err := saveOrder(storedOrder, db)
+	err = saveOrder(neworder, db)
 	if err != nil {
-		log.Printf("[%s] - error! %s", storedOrder.OrderID, err.Error())
-		return models.StoredOrder{}, models.NewErrProcessOrder(err.Error())
+		msg := fmt.Sprintf("Could not save order: %v", err)
+		log.Println(msg)
+		w.Write([]byte(msg))
+		w.WriteHeader(500) 
+		return
 	}
 
-	fmt.Printf("[%s] - order status set to new", storedOrder.OrderID)
-	resultStoredOrder := storedOrder
-
-	fmt.Println("\nUpdated stored orders:")
-	err = utils.ViewDatabase(db)
-	if err != nil {
-		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
-		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
-	}
-
-	// Only for restoring database for testing reasons
-	err = utils.ResetOrderStatus(db, storedOrder.OrderID)
-	if err != nil {
-		fmt.Printf("Error with ResetOrderStatus() in handler(): %v", err)
-		return models.StoredOrder{}, fmt.Errorf("Error with ResetOrderStatus() in handler(): %w", err)
-	}
-	fmt.Println("\nStored orders after reset:")
-	err = utils.ViewDatabase(db)
-	if err != nil {
-		fmt.Printf("Error with ViewDatabase() in handler(): %v", err)
-		return models.StoredOrder{}, fmt.Errorf("Error with ViewDatabase() in handler(): %w", err)
-	}
-
-	// close database
-	defer db.Close()
-	return resultStoredOrder, nil
+	log.Printf("[%s] - order status set to new", neworder.OrderID)
 }
 
-func saveOrder(updatedOrder models.StoredOrder, db *sql.DB) error {	
+func saveOrder(neworder models.StoredOrder, db *sql.DB) error {	
 	// Converting the new order status into a byte slice
-	newStatus := updatedOrder.Order.OrderStatus
-	orderStatusBytes, err := json.Marshal(newStatus)
+	b, err := json.Marshal(neworder)
 	if err != nil {
-		fmt.Printf("Error with Marshall() in saveOrder(): Could not marshall order status: %v", err)
-		return fmt.Errorf("Error with Marshall() in saveOrder(): Could not marshall order status: %w", err)
+		msg := fmt.Sprintf("Error with Marshall() in saveOrder(): Could not marshall order status: %v", err)
+		log.Println(msg)
+		return errors.New(msg)
 	}
 
 	// Updating the order status in the database
-	updateString := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
-	_, err = db.Exec(updateString, orderStatusBytes, updatedOrder.OrderID)
+	updateString := `
+	  INSERT stored_orders (order_id, order_info) 
+	  VALUES $1`
+	_, err = db.Exec(updateString, b)
 	if err != nil {
-		fmt.Printf("Error with Exec() in saveOrder(): Could not update order status to new: %v", err)
-		return fmt.Errorf("Error with Exec() in saveOrder(): Could not update order status to new: %w", err)
+		msg := fmt.Sprintf("Error with Exec() in saveOrder(): Could not update order status to new: %v", err)
+		log.Println(msg)
+		return errors.New(msg)
 	}
 
 	return nil
 }
-
-// func receive( ctx context.Context, e cloudevents.Event ) error {
-// 	db, err := utils.ConnectDatabase()
-// 	if err != nil {
-// 		fmt.Printf("Could not connect to database: %v", err)
-// 		return fmt.Errorf("Could not connect to database: %w", err)
-// 	}
-
-// 	var allStoredOrders []models.StoredOrder
-
-// 	err = json.Unmarshal(e.Data(), &allStoredOrders)
-// 	if err != nil {
-// 		fmt.Printf("Could not unmarshall e.Data() into type allStoredOrders: %v", err)
-// 		return fmt.Errorf("Could not unmarshall e.Data() into type allStoredOrders: %w", err)
-// 	}
-	
-// 	for i := range allStoredOrders {
-// 		_, err = handler(ctx, allStoredOrders[i], db)
-// 		if err != nil {
-// 			fmt.Printf("Error in handler(): %v", err)
-// 			return fmt.Errorf("Error in handler(): %w", err)
-// 		}
-// 	}
-// 	return nil
-// }
