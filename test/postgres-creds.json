@@ -1,0 +1,7 @@
+{
+  "host": "postgres.postgres.svc.cluster.local",
+  "port": "5432",
+  "user": "admin",
+  "password": "admin",
+  "dbname": "testingdb"
+}
