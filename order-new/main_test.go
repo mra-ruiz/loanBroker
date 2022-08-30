@@ -1,17 +1,14 @@
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
-	"e-commerce-app/models"
 	"e-commerce-app/utils"
+
+	"github.com/lib/pq"
 )
 
 var scenarioErrProcessOrder = "../test/order1.json"
@@ -67,16 +64,13 @@ func TestHandler(t *testing.T) {
 	// assert := assert.New(t)
 
 	t.Run("ProcessOrder", func(t *testing.T) {
-		
+
 		prepareDb(t)
-		
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(testOrder))
 		resp := httptest.NewRecorder()
-		
-	  handler(resp, req)
 
-		
+		handler(resp, req)
 
 		// assert.NotEmpty(stored_order.OrderID, "OrderID must be empty")
 		// assert.NotEmpty(stored_order.Order, "Order must be empty")
@@ -89,54 +83,32 @@ func TestHandler(t *testing.T) {
 	})
 }
 
-func prepareDb(t *testing.T)  {
-	utils.DefaultCredsLocation = "../test/postgres-creds.json"
+func prepareDb(t *testing.T) {
+	utils.CredsLocation = "../test/postgres-creds.json"
+	utils.SSLMode = "disable"
 
-  var err error
+	var err error
 	db, err = utils.ConnectDatabase()
 	if err != nil {
 		t.Fatalf("error connecting to the db: %v", err)
 	}
+
 	createTable(t)
 }
 
 func createTable(t *testing.T) {
-	command := `CREATE TABLE stored_orders (order_id text, order_info JSONB);`
-	_, err := db.Exec(command)
-	if err != nil {
+	_, err := db.Exec(`CREATE TABLE stored_orders (order_id text, order_info JSONB);`)
+
+	if err, ok := err.(*pq.Error); ok && err.Code.Name() != "duplicate_table" {
 		t.Fatalf("createTable(): Error creating table %v", err)
 	}
-}
 
-func parseOrder(filename string) models.StoredOrder {
-	inputFile, err := os.Open(filename)
+	// Cleanup table
+	_, err = db.Exec(`DELETE FROM stored_orders;`)
 	if err != nil {
-		fmt.Println("parseOrder(): opening input file", err.Error())
-	}
-
-	defer inputFile.Close()
-
-	jsonParser := json.NewDecoder(inputFile)
-
-	stored_order := models.StoredOrder{}
-	if err = jsonParser.Decode(&stored_order); err != nil {
-		fmt.Println("parseOrder(): parsing input file", err.Error())
-	}
-
-	return stored_order
-}
-
-func prepareTestData(db *sql.DB, sto_ord models.StoredOrder) {
-	order_id := sto_ord.OrderID
-	order_info := sto_ord.Order
-	command := `UPDATE stored_orders SET order_id = $1, order_info = $2;`
-	_, err := db.Exec(command, order_id, order_info)
-	if err != nil {
-		_ = fmt.Errorf("prepareTestData(): Could not set up database for test: %w", err)
-		os.Exit(1)
+		t.Fatalf("createTable(): Error deleting daa in table %v", err)
 	}
 }
-
 
 func TestError(t *testing.T) {
 	t.Skip()
