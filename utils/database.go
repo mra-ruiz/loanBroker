@@ -1,32 +1,46 @@
 package utils
 
 import (
-	"database/sql"
-	"e-commerce-app/models"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
+    "database/sql"
+    "e-commerce-app/models"
+    "encoding/json"
+    "fmt"
+    "log"
+    "os"
 
-	_ "github.com/lib/pq"
+    "github.com/lib/pq"
+    _ "github.com/lib/pq"
 )
 
 var (
-    DefaultCredsLocation = "/etc/postgresql/creds.json"
+    CredsLocation = "/etc/postgresql/creds.json"
+    SSLMode       = "require"
+    DBName        = ""
 )
-
 
 func ConnectDatabase() (*sql.DB, error) {
     // open database
-    db, err := sql.Open("postgres", dataSourceName())
+    db, err := sql.Open("postgres", dataSourceName(false))
     if err != nil {
-        return nil, fmt.Errorf("Could not open databse: %w", err)
+        return nil, fmt.Errorf("Could not open database: %w", err)
+    }
+
+    _, err = db.Exec("CREATE DATABASE " + DBName)
+    if err, ok := err.(*pq.Error); ok && err.Code.Name() != "duplicate_database" {
+        return nil, fmt.Errorf("could not create database: %w", err)
+    }
+    db.Close()
+
+    // open database
+    db, err = sql.Open("postgres", dataSourceName(true))
+    if err != nil {
+        return nil, fmt.Errorf("Could not open database: %w", err)
     }
 
     // check db
     err = db.Ping()
     if err != nil {
-        return nil, fmt.Errorf("Could not open database: %w", err)
+        return nil, fmt.Errorf("could not ping database: %w", err)
     }
     return db, nil
 }
@@ -108,13 +122,13 @@ func ResetOrderPayment(db *sql.DB, orderID string) error {
 
 func ResetOrderInventory(db *sql.DB, orderID string) error {
     originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-		"transaction_id": "transactionID7845764", 
-		"transaction_date": "01-1-2022", 
-		"order_id": "orderID123456", 
+		"transaction_id": "transactionID7845764",
+		"transaction_date": "01-1-2022",
+		"order_id": "orderID123456",
 		"items": [
-			"Pencil", 
+			"Pencil",
 			"Paper"
-		], 
+		],
 		"transaction_type": "online"
 	}', true) WHERE order_id = $1;`
 
@@ -125,8 +139,8 @@ func ResetOrderInventory(db *sql.DB, orderID string) error {
     return nil
 }
 
-func dataSourceName() string {
-    bytes, err := ioutil.ReadFile(DefaultCredsLocation)
+func dataSourceName(withDB bool) string {
+    bytes, err := os.ReadFile(CredsLocation)
     if err != nil {
         log.Fatalf("failed to load postgreSQL credentials: %v", err)
     }
@@ -161,6 +175,10 @@ func dataSourceName() string {
     if !ok {
         log.Fatal("failed to create postgreSQL connection: missing dbname")
     }
+    DBName = dbname
 
-    return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
+    if withDB {
+        return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", host, port, user, password, dbname, SSLMode)
+    }
+    return fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=%s", host, port, user, password, SSLMode)
 }
