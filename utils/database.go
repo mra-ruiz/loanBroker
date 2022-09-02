@@ -1,15 +1,14 @@
 package utils
 
 import (
-    "database/sql"
-    "e-commerce-app/models"
-    "encoding/json"
-    "fmt"
-    "log"
-    "os"
+	"database/sql"
+	"e-commerce-app/models"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
 
-    "github.com/lib/pq"
-    _ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 var (
@@ -19,25 +18,26 @@ var (
 )
 
 func ConnectDatabase() (*sql.DB, error) {
-    // open database
+    // Open connection to database
     db, err := sql.Open("postgres", dataSourceName(false))
     if err != nil {
-        return nil, fmt.Errorf("Could not open database: %w", err)
+        return nil, fmt.Errorf("could not open database: %w", err)
     }
 
+    // Create database
     _, err = db.Exec("CREATE DATABASE " + DBName)
     if err, ok := err.(*pq.Error); ok && err.Code.Name() != "duplicate_database" {
         return nil, fmt.Errorf("could not create database: %w", err)
     }
     db.Close()
 
-    // open database
+    // Open database
     db, err = sql.Open("postgres", dataSourceName(true))
     if err != nil {
-        return nil, fmt.Errorf("Could not open database: %w", err)
+        return nil, fmt.Errorf("could not open database: %w", err)
     }
 
-    // check db
+    // Check database
     err = db.Ping()
     if err != nil {
         return nil, fmt.Errorf("could not ping database: %w", err)
@@ -58,8 +58,6 @@ func ViewDatabase(db *sql.DB) error {
             if err != nil {
                 return fmt.Errorf("ViewDatabase(): Error with scan: %w", err)
             }
-        } else {
-            // fmt.Println("Here's where scan has no error")
         }
         allStoredOrders = append(allStoredOrders, storedOrder)
     }
@@ -83,8 +81,6 @@ func ImportDbData(db *sql.DB) []models.StoredOrder {
                 _ = fmt.Errorf("ImportDBData(): Error with scan: %w", err)
                 return nil
             }
-        } else {
-            // fmt.Println("Here's where scan has no error")
         }
         allStoredOrders = append(allStoredOrders, storedOrder)
         fmt.Println("Original stored orders:")
@@ -98,43 +94,43 @@ func ResetOrderStatus(db *sql.DB, orderID string) error {
     originalOrderStatus := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{order_status}', '"fillIn"', true) WHERE order_id = $1;`
     _, err := db.Exec(originalOrderStatus, orderID)
     if err != nil {
-        return fmt.Errorf("Could not reset order status: %w", err)
+        return fmt.Errorf("could not reset order status: %w", err)
     }
     return nil
 }
 
 func ResetOrderPayment(db *sql.DB, orderID string) error {
     originalPayment := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', '{
-		"order_id": "orderID123456",
-		"merchant_id": "merchantID1234",
-		"payment_type": "creditcard",
-		"payment_amount": 6.5,
-		"transaction_id": "transactionID7845764",
-		"transaction_date": "01-1-2022"
-	}', true) WHERE order_id = $1;`
+        "order_id": "orderID123456",
+        "merchant_id": "merchantID1234",
+        "payment_type": "creditcard",
+        "payment_amount": 6.5,
+        "transaction_id": "transactionID7845764",
+        "transaction_date": "01-1-2022"
+    }', true) WHERE order_id = $1;`
 
     _, err := db.Exec(originalPayment, orderID)
     if err != nil {
-        return fmt.Errorf("Could not reset database: %w", err)
+        return fmt.Errorf("could not reset database: %w", err)
     }
     return nil
 }
 
 func ResetOrderInventory(db *sql.DB, orderID string) error {
     originalInventory := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{inventory}', '{
-		"transaction_id": "transactionID7845764",
-		"transaction_date": "01-1-2022",
-		"order_id": "orderID123456",
-		"items": [
-			"Pencil",
-			"Paper"
-		],
-		"transaction_type": "online"
-	}', true) WHERE order_id = $1;`
+        "transaction_id": "transactionID7845764",
+        "transaction_date": "01-1-2022",
+        "order_id": "orderID123456",
+        "items": [
+            "Pencil",
+            "Paper"
+        ],
+        "transaction_type": "online"
+    }', true) WHERE order_id = $1;`
 
     _, err := db.Exec(originalInventory, orderID)
     if err != nil {
-        return fmt.Errorf("Could not reset database: %w", err)
+        return fmt.Errorf("could not reset database: %w", err)
     }
     return nil
 }
