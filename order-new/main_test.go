@@ -127,7 +127,7 @@ func test(t *testing.T, a *assert.Assertions, stoOrd models.StoredOrder) {
         if storedOrder.Order.OrderStatus != "New" {
             t.Fatalf("Order status was not set to new")
         }
-        a.True(storedOrder.Order.OrderStatus == stoOrd.Order.OrderStatus, "OrderStatus not set to 'New'")
+        a.True(storedOrder.Order.OrderStatus != stoOrd.Order.OrderStatus, "OrderStatus not set to 'New'")
         allOrderInfos = append(allOrderInfos, storedOrder)
     }
     fmt.Println(allOrderInfos)
