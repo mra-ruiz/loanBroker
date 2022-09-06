@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -56,18 +57,14 @@ const (
     }`
 )
 
-// testing scenario
-// if storedOrder.OrderID[0:1] == "1" {
-// 	return models.StoredOrder{}, models.NewErrProcessOrder("Unable to process order " + storedOrder.OrderID)
-// }
-
 func TestHandler(t *testing.T) {
-    // assert := assert.New(t)
+    assert := assert.New(t)
 
     t.Run("ProcessOrder", func(t *testing.T) {
 
         prepareDb(t)
         createTable(t)
+        stoOrd := prepareTestData(t)
 
         req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(testOrder))
         resp := httptest.NewRecorder()
@@ -75,7 +72,7 @@ func TestHandler(t *testing.T) {
         handler(resp, req)
 
         // Check database
-        test(t)
+        test(t, assert, stoOrd)
 
         // Clean up
         cleanUp(t)
@@ -100,14 +97,26 @@ func createTable(t *testing.T) {
     }
 }
 
-func test(t *testing.T) {
+func prepareTestData(t *testing.T) models.StoredOrder {
+    // Parsing test data prior to calling handler()
+    stoOrd := models.StoredOrder{}
+    err := json.Unmarshal([]byte(testOrder), &stoOrd)
+    if err != nil {
+        t.Fatalf("test(): error with json unmarshall: %v", err)
+    }
+    return stoOrd
+}
+
+func test(t *testing.T, a *assert.Assertions, stoOrd models.StoredOrder) {
+    // Fetching test data from test database after calling handler()
     var allOrderInfos []models.StoredOrder
     var storedOrder models.StoredOrder
-    rows, err := db.Query(`SELECT * FROM stored_orders WHERE order_id='orderID123456'`)
+    rows, err := db.Query(`SELECT * FROM stored_orders WHERE order_id=$1`, stoOrd.OrderID)
     if err != nil {
         t.Fatalf("test(): error with query: %v", err)
     }
 
+    // Parsing data from database
     for rows.Next() {
         if err = rows.Scan(&storedOrder.OrderID, &storedOrder.Order); err != nil {
             if err != nil {
@@ -118,10 +127,9 @@ func test(t *testing.T) {
         if storedOrder.Order.OrderStatus != "New" {
             t.Fatalf("Order status was not set to new")
         }
-        assert.True(t, storedOrder.Order.OrderStatus == "New", "OrderStatus not set to 'New'")
+        a.True(storedOrder.Order.OrderStatus == stoOrd.Order.OrderStatus, "OrderStatus not set to 'New'")
         allOrderInfos = append(allOrderInfos, storedOrder)
     }
-
     fmt.Println(allOrderInfos)
 }
 
