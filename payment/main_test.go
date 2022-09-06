@@ -50,7 +50,7 @@ const (
                 "transaction_id": "transactionID7845764",
                 "transaction_date": "01-1-2022",
                 "order_id": "orderID123456",
-                "items": ["Pencil", "Paper"],
+                "items": ["itemID456", "itemID789"],
                 "transaction_type": "online"
             }
         }
@@ -60,7 +60,7 @@ const (
 func TestHandler(t *testing.T) {
     assert := assert.New(t)
 
-    t.Run("ProcessOrder", func(t *testing.T) {
+    t.Run("ProcessPayment", func(t *testing.T) {
 
         prepareDb(t)
         createTable(t)
@@ -102,13 +102,13 @@ func prepareTestData(t *testing.T) models.StoredOrder {
     stoOrd := models.StoredOrder{}
     err := json.Unmarshal([]byte(testOrder), &stoOrd)
     if err != nil {
-        t.Fatalf("test(): error with json unmarshall: %v", err)
+        t.Fatalf("prepareTestData(): error with json unmarshall: %v", err)
     }
 
     insertCommand := `INSERT INTO stored_orders (order_id, order_info) VALUES ($1, $2)`
     _, err = db.Exec(insertCommand, stoOrd.OrderID, stoOrd.Order)
     if err != nil {
-        fmt.Printf("prepareTestData(): Could not set up database for test: %v", err)
+        fmt.Printf("prepareTestData(): Could not insert test data into database: %v", err)
     }
 
     return stoOrd
@@ -131,7 +131,7 @@ func test(t *testing.T, a *assert.Assertions, stoOrd models.StoredOrder) {
             }
         } 
         // Scan worked, so run asserts
-        a.True(storedOrder.OrderID == stoOrd.OrderID, "Order id was modified and should not have been")
+        a.True(storedOrder.Order.Payment.OrderID == stoOrd.Order.Payment.OrderID, "Order id was modified and should not have been")
         a.True(storedOrder.Order.Payment.MerchantID == "merch1", "Merchant id is not equal to 'merch1'")
         a.True(storedOrder.Order.Payment.PaymentAmount == stoOrd.Order.Payment.PaymentAmount, "Payment amount is not equal")
         a.True(storedOrder.Order.Payment.TransactionID != stoOrd.Order.Payment.TransactionID, "TransactionID should be modified")

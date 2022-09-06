@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -86,16 +87,18 @@ func savePayment(payment models.Payment) error {
     // converting payment into a byte slice
     paymentBytes, err := json.Marshal(payment)
     if err != nil {
-        fmt.Printf("Error with Marshall() in savePayment(): Could not marshall payment: %v", err)
-        return fmt.Errorf("error with Marshall() in savePayment(): Could not marshall payment: %w", err)
+        msg := fmt.Sprintf("Error with Marshall() in savePayment(): Could not marshall payment: %v", err)
+        log.Println(msg)
+        return errors.New(msg)
     }
 
     // Updating payment of specific order
     updatePaymentCommand := `UPDATE stored_orders SET order_info = jsonb_set(order_info, '{payment}', to_jsonb($1::JSONB), true) WHERE order_id = $2;`
     _, err = db.Exec(updatePaymentCommand, paymentBytes, payment.OrderID)
     if err != nil {
-        fmt.Printf("Error with Exec() in saveOrder(): Could not update inventory: %v", err)
-        return fmt.Errorf("error with Exec() in saveOrder(): Could not update inventory: %w", err)
+        msg := fmt.Sprintf("Error with Exec() in savePayment(): Could not update payment: %v", err)
+        log.Println(msg)
+        return errors.New(msg)
     }
 
     return nil

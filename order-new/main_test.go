@@ -50,7 +50,7 @@ const (
                 "transaction_id": "transactionID7845764",
                 "transaction_date": "01-1-2022",
                 "order_id": "orderID123456",
-                "items": ["Pencil", "Paper"],
+                "items": ["itemID456", "itemID789"],
                 "transaction_type": "online"
             }
         }
