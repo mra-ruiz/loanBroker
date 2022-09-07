@@ -34,35 +34,22 @@ export KO_DOCKER_REPO=kind.local
 export KIND_CLUSTER_NAME=knative # name of the kind cluster created by kn quickstart
 ```
 
-### Knative integration
+## Installing postgreSQL
 
-In this example we use a YAML file to run the image for each function in the workflow. 
-Below is the YAML file for the first function order-new:
+The commerce application stores orders and inventories in postgreSQL.
 
-```yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: order-new
-spec:
-  template:
-    metadata:
-      annotations:
-        autoscaling.knative.dev/min-scale: "1"
-    spec:
-      containers:
-      - image: ko://e-commerce-app/order-new
-```
-
-### PostgreSQL integration
-
-The commerce application stores orders and inventories in postgreSQL. 
-
-Edit `config/infra/postgresql.yaml` and replace the provided values 
-by yours. Then deploy the secret:
+Install kubegres:
 
 ```shell
-kubectl apply config/infra/postgresql.yaml
+kubectl apply -f https://raw.githubusercontent.com/reactive-tech/kubegres/v1.15/kubegres.yaml
+````
+
+```shell
+kubectl wait deployment -n kubegres-system kubegres-controller-manager --for condition=Available=True --timeout=90s
+```
+
+```shell
+kubectl apply -f config/infra/postgres
 ```
 
 ### Apply the e-commerce YAML configs
@@ -92,6 +79,7 @@ quarkus create app \
 The `org.acme:e-commerce-ksw` is the group id, artifact id, and version of your project.
 
 This command will create a Maven Quarkus project in the `e-commerce-ksw` directory with all required Kogito dependencies.
+
 
 ### Creating your first Workflow
 
