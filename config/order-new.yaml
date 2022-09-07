@@ -23,13 +23,11 @@ spec:
         autoscaling.knative.dev/min-scale: "1"
     spec:
       containers:
-      - image: ko://e-commerce-app/order-new
-        volumeMounts:
-        - name: postgresql
-          mountPath: /etc/postgresql
+        - image: ko://e-commerce-app/order-new
+          volumeMounts:
+            - name: postgresql
+              mountPath: /etc/postgresql
       volumes:
-      - name: postgresql
-        secret:
-          secretName: postgresql
-
-
+        - name: postgresql
+          secret:
+            secretName: postgresql

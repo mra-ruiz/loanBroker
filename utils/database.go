@@ -13,7 +13,7 @@ import (
 
 var (
     CredsLocation = "/etc/postgresql/creds.json"
-    SSLMode       = "require"
+    SSLMode       = "verify-full"
     DBName        = ""
 )
 
