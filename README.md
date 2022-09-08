@@ -42,7 +42,7 @@ Install kubegres:
 
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/reactive-tech/kubegres/v1.15/kubegres.yaml
-````
+```
 
 ```shell
 kubectl wait deployment -n kubegres-system kubegres-controller-manager --for condition=Available=True --timeout=90s
@@ -67,16 +67,8 @@ ko apply -f config
 To create the project skeleton, run:
 
 ```shell
-quarkus create app \
-  -x=kogito-quarkus-serverless-workflow \
-  -x=quarkus-container-image-jib \
-  -x=quarkus-resteasy-jackson \
-  -x=quarkus-smallrye-openapi \
-  -x=kubernetes \
- org.acme:e-commerce-ksw
+kn workflow create --name e-commerce-ksw
 ```
-
-The `org.acme:e-commerce-ksw` is the group id, artifact id, and version of your project.
 
 This command will create a Maven Quarkus project in the `e-commerce-ksw` directory with all required Kogito dependencies.
 
@@ -91,20 +83,16 @@ cp config/sw/* e-commerce-ksw/src/main/resources
 
 Navigate to your project's directory. For this example `cd e-commerce-ksw`
 
-You can use the Quarkus CLI to build your image with the following command:
+You can use the Serverless Workflow plug-in for the Knative CLI to build your image with the following command:
 
 ```shell
-quarkus build \
-  -Dquarkus.container-image.build=true \
-  -Dquarkus.kubernetes.deployment-target=knative \
-  -Dquarkus.container-image.registry=kind.local \
-  -Dquarkus.container-image.tag=latest
+kn workflow build --image dev.local/e-commerce-ksw:1.0
 ```
 
 Load the produced container image into Kind:
 
 ```shell
-kind load docker-image kind.local/<your-username>/e-commerce-ksw:latest --name=knative
+kind load docker-image dev.local/e-commerce-ksw:1.0 --name=knative
 ```
 
 Then deploy the workflow as a Knative application:

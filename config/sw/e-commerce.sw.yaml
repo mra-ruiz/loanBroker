@@ -2,7 +2,7 @@
 id: commerce
 version: '1.0'
 name: Hello Person
-start: NewOrder
+start: ProcessOrder
 functions:
 - name: orderNew
   type: custom
@@ -14,17 +14,17 @@ functions:
   type: custom
   operation: "rest:post:/"
 states:
-- name: NewOrder
+- name: ProcessOrder
   type: operation
   actions:
   - functionRef:
-      refName: payment
+      refName: orderNew
   transition: ProcessPayment
 - name: ProcessPayment
   type: operation
   actions:
   - functionRef:
-      refName: orderNew
+      refName: payment
   transition: InvReserve
 - name: InvReserve
   type: operation
