@@ -81,46 +81,10 @@ The `org.acme:e-commerce-ksw` is the group id, artifact id, and version of your 
 This command will create a Maven Quarkus project in the `e-commerce-ksw` directory with all required Kogito dependencies.
 
 
-### Creating your first Workflow
+### Copy the ecommerce workflow
 
-Go to the directory `src/main/resources` and create a file named `e-commerce.sw.yaml`. 
-You can play around and type the workflow definition by hand using the editor intellisense feature or copy and paste from the snnipet below:
-
-```yaml
----
-id: commerce
-version: '1.0'
-name: Hello Person
-start: NewOrder
-functions:
-- name: orderNew
-  type: custom
-  operation: "rest:post:/"
-- name: payment
-  type: custom
-  operation: "rest:post:/"
-- name: inventoryReserve
-  type: custom
-  operation: "rest:post:/"
-states:
-- name: NewOrder
-  type: operation
-  actions:
-  - functionRef:
-      refName: payment
-  transition: ProcessPayment
-- name: ProcessPayment
-  type: operation
-  actions:
-  - functionRef:
-      refName: orderNew
-  transition: InvReserve
-- name: InvReserve
-  type: operation
-  actions:
-  - functionRef:
-      refName: inventoryReserve
-  end: true
+```shell
+cp config/sw/* e-commerce-ksw/src/main/resources
 ```
 
 ## Building your project's image and Deploying to Knative
