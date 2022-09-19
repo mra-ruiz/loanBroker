@@ -31,7 +31,11 @@ ko supports loading images directly to Kind local registry:
 
 ```shell
 export KO_DOCKER_REPO=kind.local
-export KIND_CLUSTER_NAME=knative # name of the kind cluster created by kn quickstart
+```
+
+Below is the name of the kind cluster created by kn quickstart
+```shell
+export KIND_CLUSTER_NAME=knative 
 ```
 
 ## Installing postgreSQL
@@ -73,15 +77,19 @@ kn workflow create --name e-commerce-ksw
 This command will create a Maven Quarkus project in the `e-commerce-ksw` directory with all required Kogito dependencies.
 
 
-### Copy the ecommerce workflow
+### Copy the e-commerce workflow
 
 ```shell
-cp config/sw/* e-commerce-ksw/src/main/resources
+rm -rf e-commerce-ksw/src/main/resources/* && cp config/sw/* e-commerce-ksw/src/main/resources
 ```
 
 ## Building your project's image and Deploying to Knative
 
-Navigate to your project's directory. For this example `cd e-commerce-ksw`
+Navigate to your project's directory. For this example:
+
+```shell
+cd e-commerce-ksw
+```
 
 You can use the Serverless Workflow plug-in for the Knative CLI to build your image with the following command:
 
