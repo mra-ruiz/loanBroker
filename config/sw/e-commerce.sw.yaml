@@ -25,8 +25,8 @@ states:
   actions:
   - functionRef:
       refName: payment
-  transition: InvReserve
-- name: InvReserve
+  transition: ReserveInventory
+- name: ReserveInventory
   type: operation
   actions:
   - functionRef:
