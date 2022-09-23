@@ -34,6 +34,7 @@ export KO_DOCKER_REPO=kind.local
 ```
 
 Below is the name of the kind cluster created by kn quickstart
+
 ```shell
 export KIND_CLUSTER_NAME=knative 
 ```
@@ -106,7 +107,6 @@ kind load docker-image dev.local/e-commerce-ksw:1.0 --name=knative
 Then deploy the workflow as a Knative application:
 
 ```shell
-# Install the app!
 kn service create -f target/kubernetes/knative.yml
 ```
 
@@ -130,7 +130,7 @@ e-commerce-ksw   http://e-commerce-ksw.default.127.0.0.1.sslip.io   e-commerce-k
 To interact with the application, you can call the service via command line
 
 ```shell
-curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -d '{"workflowdata" : {"id":"8dee2","order_info":{"order_date":"2022-01-01T02:30:50Z","customer_id":"id001","order_status":"fillIn","items": [{"item_id":"itemID456","qty":1,"description":"Pencil","unit_price":2.5},{"item_id":"itemID789","qty":1,"description":"Paper","unit_price":4}],"payment":{"merchant_id":"merchantID1234","payment_amount":6.5,"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","payment_type":"creditcard"},"inventory":{"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","items":["Pencil","Paper"],"transaction_type":"online"}}}}'  http://e-commerce-ksw.default.127.0.0.1.sslip.io/commerce
+curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -d '{"workflowdata" : {"order_id":"8dee2","order_info":{"order_date":"2022-01-01T02:30:50Z","customer_id":"id001","order_status":"fillIn","items": [{"item_id":"itemID456","qty":1,"description":"Pencil","unit_price":2.5},{"item_id":"itemID789","qty":1,"description":"Paper","unit_price":4}],"payment":{"merchant_id":"merchantID1234","payment_amount":6.5,"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","payment_type":"creditcard"},"inventory":{"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","items":["Pencil","Paper"],"transaction_type":"online"}}}}'  http://e-commerce-ksw.default.127.0.0.1.sslip.io/commerce
 ```
 
 ## Resources
