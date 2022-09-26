@@ -1,7 +1,7 @@
 ---
 id: commerce
 version: '1.0'
-name: Hello Person
+name: E commerce workflow
 start: ProcessOrder
 functions:
 - name: orderNew
@@ -20,6 +20,9 @@ functions:
   type: custom
   operation: "rest:post:/"
 - name: inventoryRelease
+  type: custom
+  operation: "rest:post:/"
+- name: success
   type: custom
   operation: "rest:post:/"
 states:
@@ -43,6 +46,12 @@ states:
   - functionRef:
       refName: inventoryReserve
   compensatedBy: ReleaseInventory
+  transition: Success
+- name: Success
+  type: operation
+  actions:
+  - functionRef:
+      refName: success
   end: true
 - name: ReleaseInventory
   type: operation
@@ -50,14 +59,12 @@ states:
   actions:
   - functionRef:
       refName: inventoryRelease
-  transition: ProcessRefund
 - name: ProcessRefund
   type: operation
   usedForCompensation: true
   actions:
   - functionRef:
       refName: refund
-  transition: UpdateOrderStatus
 - name: UpdateOrderStatus
   type: operation
   usedForCompensation: true
