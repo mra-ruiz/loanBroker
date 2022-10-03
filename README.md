@@ -46,8 +46,17 @@ The commerce application stores orders and inventories in postgreSQL.
 Install kubegres:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/reactive-tech/kubegres/v1.15/kubegres.yaml
+kubectl apply -f https://raw.githubusercontent.com/reactive-tech/kubegres/v1.16/kubegres.yaml
 ```
+<details open>
+<summary>Useful commands for debugging kubegress</summary>
+<br>
+kubectl get all -n kubegres-system
+kubectl logs pod/kubegres-controller-manager-999786dd6-74tmb -c manager -n kubegres-system -f
+kubectl get sc
+kubectl get pod,statefulset,svc,configmap,pv,pvc -o wide
+<br><br>
+</details>
 
 ```shell
 kubectl wait deployment -n kubegres-system kubegres-controller-manager --for condition=Available=True --timeout=90s
