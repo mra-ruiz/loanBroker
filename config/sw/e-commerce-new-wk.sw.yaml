@@ -19,22 +19,12 @@ functions:
 - name: orderUpdate
   type: custom
   operation: "rest:post:/"
-- name: refund
-  type: custom
-  operation: "rest:post:/"
-- name: inventoryRelease
-  type: custom
-  operation: "rest:post:/"
 - name: failure
   type: custom
   operation: "rest:post:/"
 errors:
 - name: failure processing order
-  code: 400
-- name: failure processing payment
-  code: 400
-- name: failure reserving inventory
-  code: 400
+  code: 400 
 states:
 - name: ProcessOrder
   type: operation
@@ -52,38 +42,18 @@ states:
   - functionRef:
       refName: payment
   transition: ReserveInventory
-  compensatedBy: ProcessRefund
-  onErrors:
-  - errorRef: failure processing payment
-    transition: ServiceError
 - name: ReserveInventory
   type: operation
   actions:
   - functionRef:
       refName: inventoryReserve
   transition: Success
-  compensatedBy: ReleaseInventory
-  onErrors:
-  - errorRef: failure reserving inventory
-    transition: ServiceError
 - name: Success
   type: operation
   actions:
   - functionRef:
       refName: success
   end: true
-- name: ReleaseInventory
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: inventoryRelease
-- name: ProcessRefund
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: refund
 - name: UpdateOrderStatus
   type: operation
   usedForCompensation: true

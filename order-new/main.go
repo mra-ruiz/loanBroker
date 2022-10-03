@@ -39,6 +39,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
     body, err := io.ReadAll(req.Body)
     if err != nil {
         msg := fmt.Sprintf("Failed to read the request body: %v", err)
+		log.Println(msg)
         w.Write([]byte(msg))
         w.WriteHeader(500) 
         return
@@ -70,6 +71,14 @@ func handler(w http.ResponseWriter, req *http.Request) {
         w.WriteHeader(500) 
         return
     }
+
+	// testing scenario
+	if neworder.OrderID[0:1] == "1" {
+		msg := fmt.Sprintf("Triggered compensation!!: %v", err)
+        log.Println(msg)
+        w.WriteHeader(400) 
+        return
+	}
 
     log.Printf("[%s] - order status set to new", neworder.OrderID)
 }
