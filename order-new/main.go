@@ -74,9 +74,15 @@ func handler(w http.ResponseWriter, req *http.Request) {
 
 	// testing scenario
 	if neworder.OrderID[0:1] == "1" {
-		msg := fmt.Sprintf("Triggered compensation!!: %v", err)
+		msg := fmt.Sprintf("Order equals 1 so triggering error: %v", err)
         log.Println(msg)
-        w.WriteHeader(400) 
+        err = errors.New(msg)
+	}
+
+	if err != nil {
+		msg := fmt.Sprintf("Trying to throw error!: %v", err)
+        log.Println(msg)
+        w.WriteHeader(500) 
         return
 	}
 
