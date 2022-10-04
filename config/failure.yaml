@@ -31,5 +31,3 @@ spec:
       - name: postgresql
         secret:
           secretName: postgresql
-
-
