@@ -1,7 +1,8 @@
 ---
 id: commerce
+specVersion: "0.8.0"
 version: '1.0'
-name: E commerce workflow
+name: Hello Person
 start: ProcessOrder
 functions:
 - name: orderNew
@@ -16,15 +17,16 @@ functions:
 - name: success
   type: custom
   operation: "rest:post:/"
-- name: orderUpdate
-  type: custom
-  operation: "rest:post:/"
 - name: failure
   type: custom
   operation: "rest:post:/"
 errors:
 - name: failure processing order
-  code: 400 
+  code: "500"
+- name: failure processing payment
+  code: "500"
+- name: failure reserving inventory
+  code: "500"
 states:
 - name: ProcessOrder
   type: operation
@@ -32,7 +34,6 @@ states:
   - functionRef:
       refName: orderNew
   transition: ProcessPayment
-  compensatedBy: UpdateOrderStatus
   onErrors:
   - errorRef: failure processing order
     transition: ServiceError
@@ -42,24 +43,24 @@ states:
   - functionRef:
       refName: payment
   transition: ReserveInventory
+  onErrors:
+  - errorRef: failure processing payment
+    transition: ServiceError
 - name: ReserveInventory
   type: operation
   actions:
   - functionRef:
       refName: inventoryReserve
   transition: Success
+  onErrors:
+  - errorRef: failure reserving inventory
+    transition: ServiceError
 - name: Success
   type: operation
   actions:
   - functionRef:
       refName: success
   end: true
-- name: UpdateOrderStatus
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: orderUpdate
 - name: ServiceError
   type: inject
   data: {}

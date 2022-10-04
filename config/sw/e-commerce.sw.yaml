@@ -1,5 +1,6 @@
 ---
 id: commerce
+specVersion: "0.8.0"
 version: '1.0'
 name: E commerce workflow
 start: ProcessOrder
@@ -30,11 +31,11 @@ functions:
   operation: "rest:post:/"
 errors:
 - name: failure processing order
-  code: 400
+  code: "500"
 - name: failure processing payment
-  code: 400
+  code: "500"
 - name: failure reserving inventory
-  code: 400
+  code: "500"
 states:
 - name: ProcessOrder
   type: operation
