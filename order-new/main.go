@@ -72,7 +72,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
         return
     }
 
-	// testing scenario
+	// ############# HERE IS WHERE I TRY TO TRIGGER AN ERROR #############
 	if neworder.OrderID[0:1] == "1" {
 		msg := fmt.Sprintf("Order equals 1 so triggering error: %v", err)
         log.Println(msg)
@@ -85,6 +85,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
         w.WriteHeader(500) 
         return
 	}
+	// ##################################################################
 
     log.Printf("[%s] - order status set to new", neworder.OrderID)
 }

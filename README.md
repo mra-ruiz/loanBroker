@@ -48,18 +48,6 @@ Install kubegres:
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/reactive-tech/kubegres/v1.16/kubegres.yaml
 ```
-<details open>
-<summary>Useful commands for debugging kubegress</summary>
-<br>
-kubectl get all -n kubegres-system
-<br>
-kubectl logs pod/kubegres-controller-manager-999786dd6-74tmb -c manager -n kubegres-system -f
-<br>
-kubectl get sc
-<br>
-kubectl get pod,statefulset,svc,configmap,pv,pvc -o wide
-<br><br>
-</details>
 
 ```shell
 kubectl wait deployment -n kubegres-system kubegres-controller-manager --for condition=Available=True --timeout=90s
@@ -91,12 +79,6 @@ This command will create a Maven Quarkus project in the `e-commerce-ksw` directo
 
 
 ### Copy the e-commerce workflow
-
-```shell
-rm -rf e-commerce-ksw/src/main/resources/* && cp config/sw/* e-commerce-ksw/src/main/resources
-```
-
-Use this workflow to test triggering an error via when receiving an invalid order:
 
 ```shell
 rm -rf e-commerce-ksw/src/main/resources/* && cp config/error-testing-workflow/* e-commerce-ksw/src/main/resources
@@ -138,14 +120,13 @@ kn service list
 ```
 
 Expected output:
-```
+
 NAME           URL                                              LATEST               AGE   CONDITIONS   READY   REASON
 e-commerce-ksw   http://e-commerce-ksw.default.127.0.0.1.sslip.io   e-commerce-ksw-00001   12s   3 OK / 3     True  
-```
 
 ## Interacting with your application
 
-To interact with the application, you can call the service via command line
+To interact with the application, you can call the service via command line and passing a valid order
 
 ```shell
 curl -v -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -d '{"workflowdata" : {"order_id":"8dee2","order_info":{"order_date":"2022-01-01T02:30:50Z","customer_id":"id001","order_status":"fillIn","items": [{"item_id":"itemID456","qty":1,"description":"Pencil","unit_price":2.5},{"item_id":"itemID789","qty":1,"description":"Paper","unit_price":4}],"payment":{"merchant_id":"merchantID1234","payment_amount":6.5,"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","payment_type":"creditcard"},"inventory":{"transaction_id":"54c512","transaction_date":"2022-01-01T02:30:50Z","order_id":"8dee2","items":["Pencil","Paper"],"transaction_type":"online"}}}}'  http://e-commerce-ksw.default.127.0.0.1.sslip.io/commerce

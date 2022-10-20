@@ -2,7 +2,7 @@
 id: commerce
 specVersion: "0.8.0"
 version: '1.0'
-name: E commerce workflow
+name: Hello Person
 start: ProcessOrder
 functions:
 - name: orderNew
@@ -11,19 +11,7 @@ functions:
 - name: payment
   type: custom
   operation: "rest:post:/"
-- name: inventoryReserve
-  type: custom
-  operation: "rest:post:/"
 - name: success
-  type: custom
-  operation: "rest:post:/"
-- name: orderUpdate
-  type: custom
-  operation: "rest:post:/"
-- name: refund
-  type: custom
-  operation: "rest:post:/"
-- name: inventoryRelease
   type: custom
   operation: "rest:post:/"
 - name: failure
@@ -34,8 +22,6 @@ errors:
   code: "500"
 - name: failure processing payment
   code: "500"
-- name: failure reserving inventory
-  code: "500"
 states:
 - name: ProcessOrder
   type: operation
@@ -43,7 +29,6 @@ states:
   - functionRef:
       refName: orderNew
   transition: ProcessPayment
-  compensatedBy: UpdateOrderStatus
   onErrors:
   - errorRef: failure processing order
     transition: ServiceError
@@ -52,20 +37,9 @@ states:
   actions:
   - functionRef:
       refName: payment
-  transition: ReserveInventory
-  compensatedBy: ProcessRefund
+  transition: Success
   onErrors:
   - errorRef: failure processing payment
-    transition: ServiceError
-- name: ReserveInventory
-  type: operation
-  actions:
-  - functionRef:
-      refName: inventoryReserve
-  transition: Success
-  compensatedBy: ReleaseInventory
-  onErrors:
-  - errorRef: failure reserving inventory
     transition: ServiceError
 - name: Success
   type: operation
@@ -73,24 +47,6 @@ states:
   - functionRef:
       refName: success
   end: true
-- name: ReleaseInventory
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: inventoryRelease
-- name: ProcessRefund
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: refund
-- name: UpdateOrderStatus
-  type: operation
-  usedForCompensation: true
-  actions:
-  - functionRef:
-      refName: orderUpdate
 - name: ServiceError
   type: inject
   data: {}

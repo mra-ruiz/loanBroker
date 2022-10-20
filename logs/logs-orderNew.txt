@@ -1,0 +1,4 @@
+Opening
+2022/10/20 19:55:44 [1] - received new order
+2022/10/20 19:55:44 Order equals 1 so triggering error: <nil>
+2022/10/20 19:55:44 Trying to throw error!: Order equals 1 so triggering error: <nil>

@@ -11,9 +11,6 @@ functions:
 - name: payment
   type: custom
   operation: "rest:post:/"
-- name: inventoryReserve
-  type: custom
-  operation: "rest:post:/"
 - name: success
   type: custom
   operation: "rest:post:/"
@@ -24,8 +21,6 @@ errors:
 - name: failure processing order
   code: "500"
 - name: failure processing payment
-  code: "500"
-- name: failure reserving inventory
   code: "500"
 states:
 - name: ProcessOrder
@@ -42,18 +37,9 @@ states:
   actions:
   - functionRef:
       refName: payment
-  transition: ReserveInventory
-  onErrors:
-  - errorRef: failure processing payment
-    transition: ServiceError
-- name: ReserveInventory
-  type: operation
-  actions:
-  - functionRef:
-      refName: inventoryReserve
   transition: Success
   onErrors:
-  - errorRef: failure reserving inventory
+  - errorRef: failure processing payment
     transition: ServiceError
 - name: Success
   type: operation
