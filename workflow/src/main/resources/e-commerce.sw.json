@@ -1,0 +1,139 @@
+{
+  "id": "commerce",
+  "specVersion": "0.8.0",
+  "version": "1.0",
+  "name": "Hello Person",
+  "start": "ProcessOrder",
+  "functions": [
+    {
+      "name": "orderNew",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "payment",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "inventoryReserve",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "success",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "failure",
+      "type": "custom",
+      "operation": "rest:post:/"
+    }
+  ],
+  "errors": [
+    {
+      "name": "failure processing order",
+      "code": "HTTP:500"
+    },
+    {
+      "name": "failure processing payment",
+      "code": "500"
+    },
+    {
+      "name": "failure reserving inventory",
+      "code": "500"
+    }
+  ],
+  "states": [
+    {
+      "name": "ProcessOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "orderNew"
+          }
+        }
+      ],
+      "transition": "ProcessPayment",
+      "onErrors": [
+        {
+          "errorRef": "failure processing order",
+          "transition": "ServiceError"
+        }
+      ]
+    },
+    {
+      "name": "ProcessPayment",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "payment"
+          }
+        }
+      ],
+      "transition": "ReserveInventory",
+      "onErrors": [
+        {
+          "errorRef": "failure processing payment",
+          "transition": "ServiceError"
+        }
+      ]
+    },
+    {
+      "name": "ReserveInventory",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "inventoryReserve"
+          }
+        }
+      ],
+      "transition": "Success",
+      "onErrors": [
+        {
+          "errorRef": "failure reserving inventory",
+          "transition": "ServiceError"
+        }
+      ]
+    },
+    {
+      "name": "Success",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "success"
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "ServiceError",
+      "type": "inject",
+      "data": {
+        "error": true
+      },
+      "transition": {
+        "nextState": "Failure",
+        "compensate": true
+      }
+    },
+    {
+      "name": "Failure",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "failure"
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}
