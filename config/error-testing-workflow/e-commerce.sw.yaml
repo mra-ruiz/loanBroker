@@ -1,8 +1,8 @@
 ---
 id: commerce
 specVersion: "0.8.0"
-version: '1.0'
-name: Hello Person
+version: "1.0"
+name: E commerce workflow
 start: ProcessOrder
 functions:
 - name: orderNew
