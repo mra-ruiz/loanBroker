@@ -1,5 +1,6 @@
 package org.acme.ecommerce.workflow;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,8 +17,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@QuarkusTest
-@QuarkusTestResource(SuccessRestFunctionsMock.class)
+// TODO: it would be better to just use TestProfiles, but in this case the Mock should be aligned with it
+@Disabled("Enable this test if you want to verify the success use case, but disable EcommerceFailureFlowTest")
+//@QuarkusTest
+//@QuarkusTestResource(SuccessRestFunctionsMock.class)
 public class EcommerceSuccessFlowTest {
 
     static {

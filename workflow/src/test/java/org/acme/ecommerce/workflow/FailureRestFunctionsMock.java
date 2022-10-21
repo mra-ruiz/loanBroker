@@ -6,11 +6,15 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
@@ -28,8 +32,16 @@ public class FailureRestFunctionsMock implements QuarkusTestResourceLifecycleMan
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON)
                         .withBody("{}")
                         .withStatus(500)));
+        // failure action, we should return 200 to not fail the flow
+        // see: https://wiremock.org/docs/request-matching/
+        wireMockServer.stubFor(post(urlEqualTo("/")).withRequestBody(equalToJson("{ \"error\": true }", true, true))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON)
+                        .withBody("{}")
+                        .withStatus(200)));
 
-        // override the properties in the test environment with the mock server
+        // override the properties in the test environment with the mock
+        // quarkus runs the QuarkusTestResourceLifecycleManager first, so these properties are overrided by the other mock.
         Map<String, String> restProperties = new HashMap<>();
         restProperties.put("kogito.sw.functions.orderNew.host", "localhost");
         restProperties.put("kogito.sw.functions.orderNew.port", String.valueOf(wireMockServer.port()));

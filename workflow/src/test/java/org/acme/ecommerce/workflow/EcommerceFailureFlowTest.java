@@ -11,10 +11,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.wildfly.common.Assert.assertTrue;
 
 @QuarkusTest
 @QuarkusTestResource(FailureRestFunctionsMock.class)
@@ -28,7 +29,7 @@ public class EcommerceFailureFlowTest {
     WireMockServer failureMockServer;
 
     @Test
-    void verifyFlowRunSuccess() throws JsonProcessingException {
+    void verifyFlowRunFailure() throws JsonProcessingException {
         final ObjectMapper mapper = new ObjectMapper();
 
         final String workflowResponse = RestAssured.given()
@@ -46,6 +47,7 @@ public class EcommerceFailureFlowTest {
 
         // first function returned 500, transition to Failure which calls `failure` function, so two times.
         failureMockServer.verify(2, postRequestedFor(urlEqualTo("/")));
+        failureMockServer.verify(1, postRequestedFor(urlEqualTo("/")).withRequestBody(containing("true")));
     }
 
 }
