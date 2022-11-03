@@ -1,0 +1,79 @@
+{
+  "id": "commerce",
+  "specVersion": "0.8.0",
+  "version": "1.0",
+  "name": "E commerce application",
+  "start": "ProcessOrder",
+  "functions": [
+    {
+      "name": "orderNew",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "payment",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "inventoryReserve",
+      "type": "custom",
+      "operation": "rest:post:/"
+    },
+    {
+      "name": "success",
+      "type": "custom",
+      "operation": "rest:post/"
+    }
+  ],
+  "states": [
+    {
+      "name": "ProcessOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "orderNew"
+          }
+        }
+      ],
+      "transition": "ProcessPayment"
+    },
+    {
+      "name": "ProcessPayment",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "payment"
+          }
+        }
+      ],
+      "transition": "ReserveInventory"
+    },
+    {
+      "name": "ReserveInventory",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "inventoryReserve"
+          }
+        }
+      ],
+      "transition": "Success"
+    },
+    {
+      "name": "Success",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "success"
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

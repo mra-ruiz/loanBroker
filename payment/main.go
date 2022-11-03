@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"e-commerce-app/models"
 	"e-commerce-app/utils"
@@ -36,6 +37,9 @@ func connectDb() {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+
+	time.Sleep(10*time.Second)
+
     body, err := io.ReadAll(req.Body)
     if err != nil {
         msg := fmt.Sprintf("Failed to read the request body: %v", err)

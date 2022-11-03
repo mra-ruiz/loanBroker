@@ -15,15 +15,16 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: order-update
+  name: success
 spec:
   template:
     metadata:
       annotations:
         autoscaling.knative.dev/min-scale: "1"
     spec:
+      containerConcurrency: 1
       containers:
-      - image: ko://e-commerce-app/order-update
+      - image: ko://e-commerce-app/success
         volumeMounts:
         - name: postgresql
           mountPath: /etc/postgresql
@@ -31,3 +32,5 @@ spec:
       - name: postgresql
         secret:
           secretName: postgresql
+
+

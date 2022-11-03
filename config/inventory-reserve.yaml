@@ -22,6 +22,7 @@ spec:
       annotations:
         autoscaling.knative.dev/min-scale: "1"
     spec:
+      containerConcurrency: 1
       containers:
       - image: ko://e-commerce-app/inventory-reserve
         volumeMounts:
