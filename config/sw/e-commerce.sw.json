@@ -21,9 +21,9 @@
       "operation": "rest:post:/"
     },
     {
-      "name": "success",
+      "name": "channel",
       "type": "custom",
-      "operation": "rest:post/"
+      "operation": "rest:post:/"
     }
   ],
   "states": [
@@ -69,7 +69,10 @@
       "actions": [
         {
           "functionRef": {
-            "refName": "success"
+            "refName": "channel"
+          },
+          "actionDataFilter": {
+            "results": "${ {breads: .breads} }"
           }
         }
       ],

@@ -24,7 +24,7 @@ Skip this step if you have already access to a Kubernetes with Knative Serving.
 Create a Kind cluster and install Knative Serving by using this command:
 
 ```shell
-kn quickstart kind --install-serving
+kn quickstart kind
 ```
 
 ko supports loading images directly to Kind local registry: 
