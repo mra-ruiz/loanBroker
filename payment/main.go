@@ -80,6 +80,13 @@ func handler(w http.ResponseWriter, req *http.Request) {
     // Save state
     order.Order.Payment = payment
 
+	// testing scenario
+	if order.OrderID[0:1] == "2" {
+		w.Write([]byte("Error with payment"))
+        w.WriteHeader(500) 
+		return
+	}
+
     log.Printf("[%s] - payment processed", order.OrderID)
 }
 
