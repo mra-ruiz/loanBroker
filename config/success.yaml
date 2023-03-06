@@ -15,7 +15,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: payment
+  name: success
 spec:
   template:
     metadata:
@@ -23,7 +23,7 @@ spec:
         autoscaling.knative.dev/min-scale: "1"
     spec:
       containers:
-      - image: ko://e-commerce-app/payment
+      - image: ko://e-commerce-app/success
         volumeMounts:
         - name: postgresql
           mountPath: /etc/postgresql

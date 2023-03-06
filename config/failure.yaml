@@ -15,7 +15,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: inventory-release
+  name: failure
 spec:
   template:
     metadata:
@@ -23,7 +23,7 @@ spec:
         autoscaling.knative.dev/min-scale: "1"
     spec:
       containers:
-      - image: ko://e-commerce-app/inventory-release
+      - image: ko://e-commerce-app/failure
         volumeMounts:
         - name: postgresql
           mountPath: /etc/postgresql

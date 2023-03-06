@@ -1,0 +1,80 @@
+{
+  "id": "commerce",
+  "specVersion": "0.8.0",
+  "name": "E commerce workflow",
+  "start": "ProcessOrder",
+  "functions": [
+    {
+      "name": "orderNew",
+      "type": "custom",
+      "operation": "knative:e-commerce-ksw"
+    },
+    {
+      "name": "success",
+      "type": "custom",
+      "operation": "knative:e-commerce-ksw"
+    },
+    {
+      "name": "orderUpdate",
+      "type": "custom",
+      "operation": "knative:e-commerce-ksw"
+    },
+    {
+      "name": "failure",
+      "type": "custom",
+      "operation": "knative:e-commerce-ksw"
+    }
+  ],
+  "states": [
+    {
+      "name": "ProcessOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "orderNew"
+          }
+        }
+      ],
+      "compensatedBy": "UpdateOrderStatus",
+      "transition": "Success"
+    },
+    {
+      "name": "Success",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "success"
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "UpdateOrderStatus",
+      "type": "operation",
+      "usedForCompensation": true,
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "orderUpdate"
+          }
+        }
+      ],
+      "transition": "Failure"
+    },
+    {
+      "name": "Failure",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "failure"
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}
