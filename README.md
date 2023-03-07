@@ -92,16 +92,22 @@ Navigate to your project's directory. For this example:
 cd e-commerce-ksw
 ```
 
+Change the quarkus platform version to `2.15.0.Final` in the `pom.xml` file, line 15.
+
+```shell
+<quarkus.platform.version>2.15.0.Final</quarkus.platform.version>
+```
+
 You can use the Serverless Workflow plug-in for the Knative CLI to build your image with the following command:
 
 ```shell
-kn workflow build --image dev.local/e-commerce-ksw:1.0
+kn workflow build --image dev.local/e-commerce-ksw
 ```
 
 Load the produced container image into Kind:
 
 ```shell
-kind load docker-image dev.local/e-commerce-ksw:1.0 --name=knative
+kind load docker-image dev.local/e-commerce-ksw --name=knative
 ```
 
 Then deploy the workflow as a Knative application:
