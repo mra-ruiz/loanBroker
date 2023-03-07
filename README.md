@@ -81,7 +81,7 @@ This command will create a Maven Quarkus project in the `e-commerce-ksw` directo
 ### Copy the e-commerce workflow
 
 ```shell
-rm -rf e-commerce-ksw/src/main/resources/* && cp config/sw/* e-commerce-ksw/src/main/resources
+rm -rf e-commerce-ksw/src/main/resources/* && cp config/sw/resources/* e-commerce-ksw/src/main/resources
 ```
 
 ## Building your project's image and Deploying to Knative
@@ -92,10 +92,14 @@ Navigate to your project's directory. For this example:
 cd e-commerce-ksw
 ```
 
-Change the quarkus platform version to `2.15.0.Final` in the `pom.xml` file, line 15.
+Add the knative-serving add-on dependency by copying the code below to the pom.xml file of your workflow project.
 
-```shell
-<quarkus.platform.version>2.15.0.Final</quarkus.platform.version>
+```xml
+<dependency>
+    <groupId>org.kie.kogito</groupId>
+    <artifactId>kogito-addons-quarkus-knative-serving</artifactId>
+    <version>1.35.0.Final</version>
+</dependency>
 ```
 
 You can use the Serverless Workflow plug-in for the Knative CLI to build your image with the following command:
