@@ -71,6 +71,13 @@ func handler(w http.ResponseWriter, req *http.Request) {
         return
     }
 
+    // testing scenario
+    if neworder.OrderID[0:1] == "1" {
+        w.Write([]byte("testing scenario for compensation = Error with order-new"))
+        w.WriteHeader(500)
+        return
+    }
+
     log.Printf("[%s] - order status set to new", neworder.OrderID)
 }
 
