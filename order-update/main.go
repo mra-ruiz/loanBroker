@@ -18,6 +18,8 @@ var (
 )
  
 func main() {
+	log.Printf("log: Order new function called :)")
+
     connectDb()
 
     http.HandleFunc("/", handler)
@@ -36,6 +38,8 @@ func connectDb() {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("log: handler function called :)")
+
     body, err := io.ReadAll(req.Body)
     if err != nil {
         msg := fmt.Sprintf("handler(): Failed to read the request body: %v", err)
@@ -82,9 +86,12 @@ func handler(w http.ResponseWriter, req *http.Request) {
     }
 
     log.Printf("[%s] - order status updated to pending", order.OrderID)
+	fmt.Fprintf(w, "[%s] - order status updated to pending", order.OrderID)
 }
 
 func getOrder(orderID string) (models.Order, error) {
+	log.Printf("log: get order function called :)")
+
     // Searching for order
     resultingOrder, err := db.Query(`select order_info from stored_orders where order_id = $1;`, orderID)
     if err != nil {
@@ -103,6 +110,8 @@ func getOrder(orderID string) (models.Order, error) {
 }
 
 func saveOrder(order models.Order, orderId string) error {
+	log.Printf("log: save order function called :)")
+
     // converting order into a byte slice
     orderStatusBytes, err := json.Marshal(order.OrderStatus)
     if err != nil {

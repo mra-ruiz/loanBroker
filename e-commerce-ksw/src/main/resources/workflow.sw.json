@@ -18,6 +18,11 @@
       "name": "orderUpdate",
       "type": "custom",
       "operation": "knative:e-commerce-ksw"
+    },
+    {
+      "name": "failure",
+      "type": "custom",
+      "operation": "knative:e-commerce-ksw"
     }
   ],
   "states": [
@@ -56,7 +61,20 @@
             "refName": "orderUpdate"
           }
         }
-      ]
+      ],
+      "transition": "Failure"
+    },
+    {
+      "name": "Failure",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "failure"
+          }
+        }
+      ],
+      "end": true
     }
   ]
 }

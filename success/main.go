@@ -11,6 +11,8 @@ import (
 )
  
 func main() {
+	log.Printf("log: Order new function called :)")
+
     http.HandleFunc("/", handler)
     if err := http.ListenAndServe(":8080", nil); err != nil {
         log.Fatal(err)
@@ -18,6 +20,8 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("log: handler function called :)")
+
     body, err := io.ReadAll(req.Body)
     if err != nil {
         msg := fmt.Sprintf("Failed to read the request body: %v", err)
@@ -39,4 +43,5 @@ func handler(w http.ResponseWriter, req *http.Request) {
     }
 
     log.Printf("[%s] - Workflow completed successfully!", neworder.OrderID)
+	fmt.Fprintf(w, "[%s] - Workflow completed successfully!", neworder.OrderID)
 }

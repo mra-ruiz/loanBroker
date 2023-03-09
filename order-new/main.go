@@ -18,6 +18,8 @@ var (
 )
  
 func main() {
+	log.Printf("log: Order new function called :)")
+
     connectDb()
 
     http.HandleFunc("/", handler)
@@ -36,6 +38,7 @@ func connectDb() {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("log: handler function called :)")
     body, err := io.ReadAll(req.Body)
     if err != nil {
         msg := fmt.Sprintf("Failed to read the request body: %v", err)
@@ -58,6 +61,14 @@ func handler(w http.ResponseWriter, req *http.Request) {
 
     log.Printf("[%s] - received new order", neworder.OrderID)
 
+    // testing scenario
+    if neworder.OrderID[0:1] == "1" {
+		log.Printf("log: compensation triggered in order new")		
+        w.Write([]byte("testing scenario for compensation = Error with order-new"))
+        w.WriteHeader(500)
+        return
+    }
+
     // persist the order data. Set order status to new
     neworder.Order.OrderStatus = "New"
 
@@ -71,17 +82,12 @@ func handler(w http.ResponseWriter, req *http.Request) {
         return
     }
 
-    // testing scenario
-    if neworder.OrderID[0:1] == "1" {
-        w.Write([]byte("testing scenario for compensation = Error with order-new"))
-        w.WriteHeader(500)
-        return
-    }
-
     log.Printf("[%s] - order status set to new", neworder.OrderID)
+	fmt.Fprintf(w, "[%s] - order status set to new", neworder.OrderID)
 }
 
 func saveOrder(neworder models.StoredOrder) error {	
+	log.Printf("log: save order function called :)")
     // Converting the new order's order id into a byte slice
     orderIdBytes, err := json.Marshal(neworder.OrderID)
     if err != nil {

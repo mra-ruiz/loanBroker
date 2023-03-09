@@ -108,6 +108,11 @@ You can use the Serverless Workflow plug-in for the Knative CLI to build your im
 kn workflow build --image dev.local/e-commerce-ksw
 ```
 
+Create a service account
+```shell
+kubectl create serviceaccount e-commerce-ksw
+```
+
 Load the produced container image into Kind:
 
 ```shell
